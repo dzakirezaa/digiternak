@@ -215,7 +215,7 @@ INSERT INTO purpose (id, name) VALUES
 (4, 'Belum Tau');
 
 -- Isi Tabel User Role
-INSERT IGNORE INTO user_role (id, name) VALUES
+INSERT INTO user_role (id, name) VALUES
 (1, 'Peternak'),
 (2, 'Admin'),
 (3, 'Customer');

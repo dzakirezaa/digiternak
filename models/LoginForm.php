@@ -5,12 +5,6 @@ namespace app\models;
 use Yii;
 use yii\base\Model;
 
-/**
- * LoginForm is the model behind the login form.
- *
- * @property-read User|null $user
- *
- */
 class LoginForm extends Model
 {
     public $username;
@@ -19,19 +13,30 @@ class LoginForm extends Model
 
     private $_user = false;
 
-
     /**
-     * @return array the validation rules.
+     * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            // username and password are both required
-            [['username', 'password'], 'required'],
-            // rememberMe must be a boolean value
+            // username dan password wajib diisi
+            [['username', 'password'], 'required', 'message' => '{attribute} cannot be blank.'],
+            // rememberMe harus berupa boolean
             ['rememberMe', 'boolean'],
-            // password is validated by validatePassword()
+            // validasi password dengan metode validatePassword
             ['password', 'validatePassword'],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function attributeLabels()
+    {
+        return [
+            'username' => 'Username',
+            'password' => 'Password',
+            'rememberMe' => 'Remember Me',
         ];
     }
 
@@ -44,33 +49,64 @@ class LoginForm extends Model
      */
     public function validatePassword($attribute, $params)
     {
-        if (!$this->hasErrors()) {
+        if ($this->password === '') {
+            $this->addError($attribute, '{attribute} cannot be blank.');
+        } elseif (!$this->hasErrors()) {
             $user = $this->getUser();
 
             if (!$user || !$user->validatePassword($this->password)) {
-                $this->addError($attribute, 'Incorrect username or password.');
+                $this->addError($attribute, 'Invalid username or password. Please try again.');
             }
         }
     }
 
+
     /**
      * Logs in a user using the provided username and password.
+     *
      * @return bool whether the user is logged in successfully
      */
     public function login()
     {
         if ($this->validate()) {
-            return Yii::$app->user->login($this->getUser(), $this->rememberMe ? 3600*24*30 : 0);
+            $user = $this->getUser();
+
+            // Check if the user is valid
+            if ($user) {
+                // Generate JWT token
+                $jwt = Yii::$app->jwt;
+                $token = $jwt->getBuilder()
+                    ->setIssuer(Yii::$app->request->absoluteUrl)
+                    ->setSubject((string)$user->id)
+                    ->setAudience(Yii::$app->request->absoluteUrl)
+                    ->setIssuedAt(time())
+                    ->setExpiration(time() + 3600) // Token expiration time (1 hour)
+                    ->setId(Yii::$app->security->generateRandomString(16), true)
+                    ->set('uid', $user->id) // Set custom claims
+                    ->sign($jwt->getSigner(), $jwt->key)
+                    ->getToken();
+
+                // Set the generated token to the user identity
+                $user->token_jwt = (string)$token;
+
+                // Save the user without token in the database
+                if ($user->save(false)) {
+                    Yii::$app->user->login($user, $this->rememberMe ? 3600 * 24 * 30 : 0);
+                    return true;
+                }
+            }
         }
+
         return false;
     }
+
 
     /**
      * Finds user by [[username]]
      *
      * @return User|null
      */
-    public function getUser()
+    protected function getUser()
     {
         if ($this->_user === false) {
             $this->_user = User::findByUsername($this->username);

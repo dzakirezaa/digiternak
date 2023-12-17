@@ -2,38 +2,81 @@
 
 namespace app\models;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+use Yii;
+use yii\base\NotSupportedException;
+use yii\behaviors\TimestampBehavior;
+use yii\behaviors\UserRoleBehavior;
+use yii\db\ActiveRecord;
+use yii\web\IdentityInterface;
+use sizeg\jwt\Jwt;
+
+class User extends ActiveRecord implements IdentityInterface, Jwt
 {
-    public $id;
-    public $username;
-    public $password;
-    public $authKey;
-    public $accessToken;
+    const STATUS_DELETED = 0;
+    const STATUS_INACTIVE = 9;
+    const STATUS_ACTIVE = 10;
 
-    private static $users = [
-        '100' => [
-            'id' => '100',
-            'username' => 'admin',
-            'password' => 'admin',
-            'authKey' => 'test100key',
-            'accessToken' => '100-token',
-        ],
-        '101' => [
-            'id' => '101',
-            'username' => 'demo',
-            'password' => 'demo',
-            'authKey' => 'test101key',
-            'accessToken' => '101-token',
-        ],
-    ];
+    /**
+     * {@inheritdoc}
+     */
+    public static function tableName()
+    {
+        return '{{%user}}';
+    }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function behaviors()
+    {
+        return [
+            TimestampBehavior::class,
+            UserRoleBehavior::class,
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function rules()
+    {
+        return [
+            [['person_id', 'username', 'auth_key', 'password_hash', 'role_id', 'token_jwt'], 'required'],
+            [['person_id', 'status', 'role_id'], 'integer'],
+            [['created_at', 'updated_at'], 'safe'],
+            [['username', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
+            [['email'], 'string', 'max' => 255],
+            [['password_reset_token'], 'unique'],
+            [['email'], 'unique'],
+            [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
+            [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
+            [['token_jwt'], 'string', 'max' => 512],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fields()
+    {
+        $fields = parent::fields();
+
+        // Tambahkan kolom token_jwt ke fields
+        $fields['token_jwt'] = 'token_jwt';
+
+        // Menambahkan fields dari relasi dengan model Person dan Role
+        $fields['person'] = 'person';
+        $fields['role'] = 'role';
+
+        return $fields;
+    }
 
     /**
      * {@inheritdoc}
      */
     public static function findIdentity($id)
     {
-        return isset(self::$users[$id]) ? new static(self::$users[$id]) : null;
+        return static::findOne(['id' => $id, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
@@ -41,30 +84,24 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        foreach (self::$users as $user) {
-            if ($user['accessToken'] === $token) {
-                return new static($user);
-            }
+        $jwt = new Jwt();
+
+        try {
+            $decodedToken = $jwt->getParser()->parse((string) $token);
+        } catch (\Exception $e) {
+            return null;
         }
 
-        return null;
+        // Ganti sesuai field ID dari model User
+        return static::findOne(['id' => $decodedToken->getClaim('uid'), 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
-     * Finds user by username
-     *
-     * @param string $username
-     * @return static|null
+     * {@inheritdoc}
      */
     public static function findByUsername($username)
     {
-        foreach (self::$users as $user) {
-            if (strcasecmp($user['username'], $username) === 0) {
-                return new static($user);
-            }
-        }
-
-        return null;
+        return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
     }
 
     /**
@@ -72,7 +109,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public function getId()
     {
-        return $this->id;
+        return $this->getPrimaryKey();
     }
 
     /**
@@ -80,7 +117,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public function getAuthKey()
     {
-        return $this->authKey;
+        return $this->auth_key;
     }
 
     /**
@@ -88,17 +125,149 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
      */
     public function validateAuthKey($authKey)
     {
-        return $this->authKey === $authKey;
+        return $this->getAuthKey() === $authKey;
     }
 
     /**
-     * Validates password
-     *
-     * @param string $password password to validate
-     * @return bool if password provided is valid for current user
+     * {@inheritdoc}
      */
     public function validatePassword($password)
     {
-        return $this->password === $password;
+        return Yii::$app->security->validatePassword($password, $this->password_hash);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setPassword($password)
+    {
+        $this->password_hash = Yii::$app->security->generatePasswordHash($password);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function generateAuthKey()
+    {
+        $this->auth_key = Yii::$app->security->generateRandomString();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function generatePasswordResetToken()
+    {
+        $this->password_reset_token = Yii::$app->security->generateRandomString() . '_' . time();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function removePasswordResetToken()
+    {
+        $this->password_reset_token = null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function findByPasswordResetToken($token)
+    {
+        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
+        $parts = explode('_', $token);
+        $timestamp = (int) end($parts);
+
+        return static::findOne([
+            'password_reset_token' => $token,
+            'status' => self::STATUS_ACTIVE,
+        ])->andWhere(['>', 'created_at', time() - $expire])->one();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function generateEmailVerificationToken()
+    {
+        $this->verification_token = Yii::$app->security->generateRandomString() . '_' . time();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function findByVerificationToken($token)
+    {
+        return static::findOne(['verification_token' => $token, 'status' => self::STATUS_INACTIVE]);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isPasswordResetTokenValid($token)
+    {
+        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
+        $parts = explode('_', $token);
+        $timestamp = (int) end($parts);
+
+        return $timestamp + $expire >= time();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getJwtKey()
+    {
+        return $_ENV['JWT_SECRET_KEY']; // Ganti dengan env variable yang sesuai
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function generateJwtToken($duration = 3600)
+    {
+        $jwt = new Jwt();
+
+        return $jwt->getBuilder()
+            ->setIssuer(Yii::$app->params['jwtIssuer'])
+            ->setIssuedAt(time())
+            ->setExpiration(time() + $duration)
+            ->set('uid', $this->id) // Ganti sesuai field ID dari model User
+            ->getToken();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function findIdentityByJwtToken($token)
+    {
+        $jwt = new Jwt();
+
+        try {
+            $decodedToken = $jwt->getParser()->parse((string) $token);
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        // Ganti sesuai field ID dari model User
+        return static::findOne(['id' => $decodedToken->getClaim('uid'), 'status' => self::STATUS_ACTIVE]);
+    }
+
+    /**
+     * Gets person associated with the user.
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getPerson()
+    {
+        return $this->hasOne(Person::class, ['id' => 'person_id']);
+    }
+
+    /**
+     * Gets role associated with the user.
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getRole()
+    {
+        return $this->hasOne(UserRole::class, ['id' => 'role_id']);
     }
 }
