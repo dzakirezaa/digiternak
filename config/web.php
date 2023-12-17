@@ -1,10 +1,5 @@
 <?php
 
-use Dotenv\Dotenv;
-
-// Load Dotenv
-Dotenv::createImmutable(__DIR__)->load();
-
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
@@ -51,12 +46,6 @@ $config = [
             'showScriptName' => false,
             'rules' => [
             ],
-        ],
-
-        'jwt' => [
-            'class' => 'sizeg\jwt\Jwt',
-            'key' => getenv('JWT_SECRET_KEY'),
-            'issuer' => 'digiternak',
         ],
     ],
     'params' => $params,

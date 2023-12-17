@@ -5,16 +5,31 @@ namespace app\models;
 use Yii;
 use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
-use yii\behaviors\UserRoleBehavior;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
-use sizeg\jwt\Jwt;
 
-class User extends ActiveRecord implements IdentityInterface, Jwt
+/**
+ * User model
+ *
+ * @property integer $id
+ * @property string $username
+ * @property string $password_hash
+ * @property string $password_reset_token
+ * @property string $verification_token
+ * @property string $email
+ * @property string $auth_key
+ * @property integer $status
+ * @property integer $created_at
+ * @property integer $updated_at
+ * @property string $password write-only password
+ * 
+ */
+class User extends ActiveRecord implements IdentityInterface
 {
     const STATUS_DELETED = 0;
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
+
 
     /**
      * {@inheritdoc}
@@ -31,7 +46,6 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     {
         return [
             TimestampBehavior::class,
-            UserRoleBehavior::class,
         ];
     }
 
@@ -48,9 +62,10 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
             [['email'], 'string', 'max' => 255],
             [['password_reset_token'], 'unique'],
             [['email'], 'unique'],
+            ['status', 'default', 'value' => self::STATUS_INACTIVE],
+            ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
-            [['token_jwt'], 'string', 'max' => 512],
         ];
     }
 
@@ -60,9 +75,6 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     public function fields()
     {
         $fields = parent::fields();
-
-        // Tambahkan kolom token_jwt ke fields
-        $fields['token_jwt'] = 'token_jwt';
 
         // Menambahkan fields dari relasi dengan model Person dan Role
         $fields['person'] = 'person';
@@ -84,24 +96,66 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        $jwt = new Jwt();
-
-        try {
-            $decodedToken = $jwt->getParser()->parse((string) $token);
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        // Ganti sesuai field ID dari model User
-        return static::findOne(['id' => $decodedToken->getClaim('uid'), 'status' => self::STATUS_ACTIVE]);
+        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
     }
 
     /**
-     * {@inheritdoc}
+     * Finds user by username
+     *
+     * @param string $username
+     * @return static|null
      */
     public static function findByUsername($username)
     {
         return static::findOne(['username' => $username, 'status' => self::STATUS_ACTIVE]);
+    }
+
+    /**
+     * Finds user by password reset token
+     *
+     * @param string $token password reset token
+     * @return static|null
+     */
+    public static function findByPasswordResetToken($token)
+    {
+        if (!static::isPasswordResetTokenValid($token)) {
+            return null;
+        }
+
+        return static::findOne([
+            'password_reset_token' => $token,
+            'status' => self::STATUS_ACTIVE,
+        ]);
+    }
+
+    /**
+     * Finds user by verification email token
+     *
+     * @param string $token verify email token
+     * @return static|null
+     */
+    public static function findByVerificationToken($token) {
+        return static::findOne([
+            'verification_token' => $token,
+            'status' => self::STATUS_INACTIVE
+        ]);
+    }
+
+    /**
+     * Finds out if password reset token is valid
+     *
+     * @param string $token password reset token
+     * @return bool
+     */
+    public static function isPasswordResetTokenValid($token)
+    {
+        if (empty($token)) {
+            return false;
+        }
+
+        $timestamp = (int) substr($token, strrpos($token, '_') + 1);
+        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
+        return $timestamp + $expire >= time();
     }
 
     /**
@@ -129,7 +183,10 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
+     * Validates password
+     *
+     * @param string $password password to validate
+     * @return bool if password provided is valid for current user
      */
     public function validatePassword($password)
     {
@@ -137,7 +194,9 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
+     * Generates password hash from password and sets it to the model
+     *
+     * @param string $password
      */
     public function setPassword($password)
     {
@@ -145,7 +204,7 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
+     * Generates "remember me" authentication key
      */
     public function generateAuthKey()
     {
@@ -153,7 +212,7 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
+     * Generates new password reset token
      */
     public function generatePasswordResetToken()
     {
@@ -161,30 +220,7 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function removePasswordResetToken()
-    {
-        $this->password_reset_token = null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findByPasswordResetToken($token)
-    {
-        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
-        $parts = explode('_', $token);
-        $timestamp = (int) end($parts);
-
-        return static::findOne([
-            'password_reset_token' => $token,
-            'status' => self::STATUS_ACTIVE,
-        ])->andWhere(['>', 'created_at', time() - $expire])->one();
-    }
-
-    /**
-     * {@inheritdoc}
+     * Generates new token for email verification
      */
     public function generateEmailVerificationToken()
     {
@@ -192,63 +228,11 @@ class User extends ActiveRecord implements IdentityInterface, Jwt
     }
 
     /**
-     * {@inheritdoc}
+     * Removes password reset token
      */
-    public static function findByVerificationToken($token)
+    public function removePasswordResetToken()
     {
-        return static::findOne(['verification_token' => $token, 'status' => self::STATUS_INACTIVE]);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function isPasswordResetTokenValid($token)
-    {
-        $expire = Yii::$app->params['user.passwordResetTokenExpire'];
-        $parts = explode('_', $token);
-        $timestamp = (int) end($parts);
-
-        return $timestamp + $expire >= time();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getJwtKey()
-    {
-        return $_ENV['JWT_SECRET_KEY']; // Ganti dengan env variable yang sesuai
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function generateJwtToken($duration = 3600)
-    {
-        $jwt = new Jwt();
-
-        return $jwt->getBuilder()
-            ->setIssuer(Yii::$app->params['jwtIssuer'])
-            ->setIssuedAt(time())
-            ->setExpiration(time() + $duration)
-            ->set('uid', $this->id) // Ganti sesuai field ID dari model User
-            ->getToken();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function findIdentityByJwtToken($token)
-    {
-        $jwt = new Jwt();
-
-        try {
-            $decodedToken = $jwt->getParser()->parse((string) $token);
-        } catch (\Exception $e) {
-            return null;
-        }
-
-        // Ganti sesuai field ID dari model User
-        return static::findOne(['id' => $decodedToken->getClaim('uid'), 'status' => self::STATUS_ACTIVE]);
+        $this->password_reset_token = null;
     }
 
     /**

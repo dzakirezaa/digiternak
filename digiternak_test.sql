@@ -18,8 +18,7 @@ CREATE TABLE IF NOT EXISTS user (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     verification_token VARCHAR(255),
-    role_id INT NOT NULL,
-    token_jwt VARCHAR(512)
+    role_id INT NOT NULL
 );
 
 -- Tabel Person
