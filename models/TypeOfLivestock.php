@@ -9,7 +9,7 @@ class TypeOfLivestock extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'type_of_livestock';
+        return '{{%type_of_livestock}}';
     }
 
     public function rules()

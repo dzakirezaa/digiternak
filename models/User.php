@@ -94,6 +94,9 @@ class User extends ActiveRecord implements IdentityInterface
         $fields['created_at'] = 'created_at';
         $fields['updated_at'] = 'updated_at';
 
+        // Menghilangkan fields yang tidak perlu dioutputkan
+        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key']);
+
         return $fields;
     }
 

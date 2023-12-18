@@ -43,10 +43,15 @@ class UserController extends ActiveController
 
         if ($model->login()) {
             return [
+                'user' => Yii::$app->user->identity, // Tambahkan atribut 'user' dengan data pengguna
                 'access_token' => Yii::$app->user->identity->access_token,
             ];
         } else {
-            return $model;
+            Yii::$app->getResponse()->setStatusCode(401); // Set status code 401 Unauthorized
+            return [
+                'error' => 'Login failed',
+                'details' => $model->errors,
+            ];
         }
     }
 
@@ -61,19 +66,26 @@ class UserController extends ActiveController
         $model->load(Yii::$app->request->getBodyParams(), '');
 
         $result = $model->register();
+
         if ($result !== null && isset($result['user'])) {
+            Yii::$app->getResponse()->setStatusCode(201); // Set status code 201 Created
             return [
+                'name' => 'Registration Success', // Contoh atribut 'name'
+                'message' => 'User registered successfully.', // Tambahkan atribut message
                 'user' => $result['user'],
                 'access_token' => $result['token'],
             ];
         } else {
+            Yii::$app->getResponse()->setStatusCode(500); // Set status code 500 Internal Server Error
             return [
+                'name' => 'Registration Failed', // Contoh atribut 'name'
+                'message' => 'Failed to register user.', // Tambahkan atribut message
                 'error' => 'Failed to register user.',
                 'details' => $model->errors,
             ];
         }
     }
-    
+
     /**
      * Handle retrieving user data.
      *

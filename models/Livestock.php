@@ -9,7 +9,7 @@ class Livestock extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'livestock';
+        return '{{%livestock}}';
     }
 
     public function rules()

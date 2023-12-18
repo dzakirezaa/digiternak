@@ -9,7 +9,7 @@ class Reproduction extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'reproduction';
+        return '{{%reproduction}}';
     }
 
     public function rules()

@@ -9,7 +9,7 @@ class Source extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'source';
+        return '{{%source}}';
     }
 
     public function rules()

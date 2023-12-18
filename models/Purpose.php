@@ -9,7 +9,7 @@ class Purpose extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'purpose';
+        return '{{%purpose}}';
     }
 
     public function rules()
