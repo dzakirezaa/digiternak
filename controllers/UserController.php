@@ -8,6 +8,8 @@ use yii\filters\auth\HttpBearerAuth;
 use app\models\User;
 use app\models\LoginForm;
 use app\models\RegisterForm;
+use app\models\EditProfileForm;
+use yii\web\BadRequestHttpException;
 
 class UserController extends ActiveController
 {
@@ -100,5 +102,37 @@ class UserController extends ActiveController
         }
 
         return $profiles;
+    }
+
+    /**
+     * Handle editing user profile.
+     *
+     * @return array|BadRequestHttpException
+     */
+    public function actionEditProfile()
+    {
+        $user = Yii::$app->user->identity;
+
+        // Periksa apakah pengguna yang sedang login ada
+        if (!$user) {
+            throw new BadRequestHttpException('User not found.');
+        }
+
+        $model = new EditProfileForm(); // Gantilah dengan nama formulir edit profil yang sesuai
+
+        // Memuat data dari permintaan dengan melewati parameter kedua kosong, sehingga akan memuat semua atribut
+        $model->load(Yii::$app->request->getBodyParams(), '');
+
+        // Validasi dan simpan perubahan profil
+        if ($model->editProfile($user)) {
+            return [
+                'message' => 'Profile updated successfully.',
+            ];
+        } else {
+            return [
+                'error' => 'Failed to update profile.',
+                'details' => $model->errors,
+            ];
+        }
     }
 }

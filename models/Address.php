@@ -9,7 +9,7 @@ class Address extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'address';
+        return '{{%address}}';
     }
 
     public function rules()

@@ -53,6 +53,9 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'person/view/<id:\d+>' => 'person/view',
+                'person/update/<id:\d+>' => 'person/update',
+                'person/delete/<id:\d+>' => 'person/delete',
             ],
         ],
         // 'modules' => [
@@ -79,7 +82,7 @@ $config = [
             'dateFormat' => 'Y-m-d',
             'datetimeFormat' => 'Y-m-d H:i:s',
             'timeFormat' => 'H:i:s',
-            'locale' => 'id_ID',  // Jika ingin menggunakan format tanggal dalam bahasa Indonesia
+            'locale' => 'id_ID', 
         ],
     ],
     'params' => $params,
