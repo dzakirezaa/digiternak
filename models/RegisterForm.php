@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use yii\base\Model;
+use app\models\User;
 
 class RegisterForm extends Model
 {
@@ -28,7 +29,7 @@ class RegisterForm extends Model
             ['password', 'string', 'min' => 6],
             ['password_repeat', 'compare', 'compareAttribute' => 'password', 'message' => "Passwords don't match."],
             ['password', 'validatePasswordComplexity'],
-            ['role_id', 'in', 'range' => ['Peternak', 'Admin', 'Customer'], 'message' => 'Invalid user role.'],
+            ['role_id', 'in', 'range' => [1, 2, 3], 'message' => 'Invalid user role.'],
         ];
     }
 
@@ -61,9 +62,9 @@ class RegisterForm extends Model
     }
 
     /**
-     * Register a new user and generate JWT token.
+     * Register a new user
      *
-     * @return array|null the saved user data with JWT token or null if saving fails
+     * 
      */
     public function register()
     {
@@ -71,30 +72,32 @@ class RegisterForm extends Model
             $user = new User();
             $user->username = $this->username;
             $user->email = $this->email;
-            $user->setPassword($this->password);
-            $user->generateAuthKey();
-            $user->status = User::STATUS_ACTIVE; // Sesuaikan dengan definisi status Anda
-            $user->role_id = $this->role_id; // Set role_id
+            $user->role_id = $this->role_id;
+            $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
+            $user->access_token = Yii::$app->security->generateRandomString();
+            $user->status = User::STATUS_ACTIVE;
 
-            if ($user->save()) {
-                // Generate JWT token
-                $jwt = Yii::$app->jwt;
-                $token = $jwt->getBuilder()
-                    ->setIssuer(Yii::$app->request->absoluteUrl)
-                    ->setSubject((string)$user->id)
-                    ->setAudience(Yii::$app->request->absoluteUrl)
-                    ->setIssuedAt(time())
-                    ->setExpiration(time() + 3600) // Token expiration (1 hour)
-                    ->setId(Yii::$app->security->generateRandomString(16), true)
-                    ->set('uid', $user->id)
-                    ->sign($jwt->getSigner(), $jwt->key)
-                    ->getToken();
+            // Tambahkan kode untuk generate auth_key
+            $user->auth_key = Yii::$app->security->generateRandomString();
 
+            if ($user->save(false)) {
+                Yii::debug('User saved successfully', __METHOD__);
                 return [
-                    'user' => $user,
-                    'token' => (string)$token,
+                    'user' => [
+                        'id' => $user->id,
+                        'username' => $user->username,
+                        'email' => $user->email,
+                        'role_id' => $user->role_id,
+                        'auth_key' => $user->auth_key, // Tambahkan auth_key ke respons
+                    ],
+                    'token' => $user->access_token,
                 ];
+            } else {
+                Yii::debug('Failed to save user: ' . print_r($user->errors, true), __METHOD__);
+                $this->addErrors($user->errors);
             }
+        } else {
+            Yii::debug('Validation failed: ' . print_r($this->errors, true), __METHOD__);
         }
 
         return null;

@@ -3,7 +3,6 @@
 namespace app\models;
 
 use Yii;
-use yii\base\NotSupportedException;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
@@ -22,6 +21,9 @@ use yii\web\IdentityInterface;
  * @property integer $created_at
  * @property integer $updated_at
  * @property string $password write-only password
+ * @property integer $person_id
+ * @property integer $role_id
+ * @property string $access_token
  * 
  */
 class User extends ActiveRecord implements IdentityInterface
@@ -55,19 +57,19 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['person_id', 'username', 'auth_key', 'password_hash', 'role_id', 'token_jwt'], 'required'],
+            [['username', 'password_hash', 'role_id', 'access_token'], 'required'],
             [['person_id', 'status', 'role_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
-            [['username', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
+            [['username', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token', 'access_token'], 'string', 'max' => 255],
             [['email'], 'string', 'max' => 255],
-            [['password_reset_token'], 'unique'],
-            [['email'], 'unique'],
+            [['password_reset_token', 'email', 'username', 'access_token'], 'unique'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
         ];
     }
+
 
     /**
      * {@inheritdoc}
@@ -76,9 +78,13 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $fields = parent::fields();
 
-        // Menambahkan fields dari relasi dengan model Person dan Role
-        $fields['person'] = 'person';
-        $fields['role'] = 'role';
+        $fields['role'] = function () {
+            return $this->role;
+        };
+
+        // Menambahkan fields created_at dan updated_at
+        $fields['created_at'] = 'created_at';
+        $fields['updated_at'] = 'updated_at';
 
         return $fields;
     }
@@ -96,7 +102,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
+        return self::find()->andWhere(['access_token' => $token])->one();
     }
 
     /**
@@ -209,6 +215,12 @@ class User extends ActiveRecord implements IdentityInterface
     public function generateAuthKey()
     {
         $this->auth_key = Yii::$app->security->generateRandomString();
+    }
+
+    // Generate access token
+    public function generateAccessToken()
+    {
+        $this->access_token = Yii::$app->security->generateRandomString();
     }
 
     /**

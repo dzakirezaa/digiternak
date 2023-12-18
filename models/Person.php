@@ -9,7 +9,7 @@ class Person extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'person';
+        return '{{%person}}';
     }
 
     public function rules()

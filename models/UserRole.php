@@ -8,7 +8,7 @@ class UserRole extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'user_role';
+        return '{{%user_role}}';
     }
 
     public function rules()

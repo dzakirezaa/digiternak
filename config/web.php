@@ -14,6 +14,14 @@ $config = [
     'components' => [
         'request' => [
             'cookieValidationKey' => 'AsmXcRvr0JV5YEbMzsMuZ6yhpA0w7MqP',
+            'parsers' => [
+                'enableCsrfValidation' => YII_ENV_PROD,
+                'application/json' => 'yii\web\JsonParser',
+            ]
+        ],
+        'response' => [
+            'format' => yii\web\Response::FORMAT_JSON,
+            'charset' => 'UTF-8',
         ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
@@ -46,6 +54,32 @@ $config = [
             'showScriptName' => false,
             'rules' => [
             ],
+        ],
+        // 'modules' => [
+        //     'api' => [
+        //         'class' => '\app\modules\api\Module',
+        //         'as authenticator' => [
+        //             'class' => 'yii\filters\auth\HttpBearerAuth',
+        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
+        //         ],
+        //         'as access' => [
+        //             'class' => 'yii\filters\AccessControl',
+        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
+        //             'rules' => [
+        //                 [
+        //                     'actions' => ['profile'],
+        //                     'allow' => true,
+        //                     'roles' => ['@'],  // Hanya user yang sudah login yang dapat mengakses action ini
+        //                 ],
+        //             ],
+        //         ],
+        //     ],
+        // ],
+        'formatter' => [
+            'dateFormat' => 'Y-m-d',
+            'datetimeFormat' => 'Y-m-d H:i:s',
+            'timeFormat' => 'H:i:s',
+            'locale' => 'id_ID',  // Jika ingin menggunakan format tanggal dalam bahasa Indonesia
         ],
     ],
     'params' => $params,

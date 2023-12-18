@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS user (
     auth_key VARCHAR(32) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     password_reset_token VARCHAR(255),
+    access_token VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     status SMALLINT(6),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

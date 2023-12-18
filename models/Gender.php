@@ -9,7 +9,7 @@ class Gender extends ActiveRecord
 {
     public static function tableName()
     {
-        return 'gender';
+        return '{{%gender}}';
     }
 
     /**
