@@ -249,6 +249,17 @@ CREATE TABLE IF NOT EXISTS user_role (
     name VARCHAR(255) NOT NULL
 );
 
+-- Tabel Note
+CREATE TABLE IF NOT EXISTS note (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    livestock_vid VARCHAR(255) NOT NULL,
+    date_recorded DATE NOT NULL,
+    details TEXT,
+    documentation_path VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Tambahkan Foreign Key Constraint pada Tabel Address
 ALTER TABLE address
 ADD CONSTRAINT fk_person_address FOREIGN KEY (person_id) REFERENCES person(id) ON DELETE CASCADE,

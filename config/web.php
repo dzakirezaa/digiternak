@@ -60,6 +60,9 @@ $config = [
                 'livestock/update/<id:\d+>' => 'livestock/update',
                 'livestock/delete/<id:\d+>' => 'livestock/delete',
                 'livestock/search/<vid:[^\/]+>' => 'livestock/search',
+                'note/view/<id:\d+>' => 'note/view',
+                'note/update/<id:\d+>' => 'note/update',
+                'note/delete/<id:\d+>' => 'note/delete',
             ],
         ],
         // 'modules' => [
