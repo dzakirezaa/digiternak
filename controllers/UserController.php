@@ -25,7 +25,7 @@ class UserController extends ActiveController
         // Menambahkan authenticator untuk otentikasi menggunakan access token
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
-            'except' => ['login', 'register'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+            'except' => ['login', 'register', 'logout'], // Tambahkan action yang tidak memerlukan otentikasi di sini
         ];
 
         return $behaviors;
@@ -84,6 +84,33 @@ class UserController extends ActiveController
                 'details' => $model->errors,
             ];
         }
+    }
+
+    /**
+     * Handle user logout.
+     *
+     * @return array
+     */
+    public function actionLogout()
+    {
+        $user = Yii::$app->user->identity;
+
+        // Periksa apakah pengguna yang sedang login ada
+        if (!$user) {
+            return [
+                'name' => 'Logout Failed',
+                'message' => 'User not found.',
+                'error' => 'User not found.',
+            ];
+        }
+
+        // Lakukan proses logout
+        Yii::$app->user->logout();
+
+        return [
+            'name' => 'Logout Success',
+            'message' => 'User logged out successfully.',
+        ];
     }
 
     /**
