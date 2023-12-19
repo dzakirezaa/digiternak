@@ -15,14 +15,15 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['eid', 'vid', 'name', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health', 'bcs'], 'required'],
-            [['birthdate', 'created_at', 'updated_at'], 'safe'],
-            [['type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'bcs'], 'integer'],
+            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health', 'bcs_id'], 'required'],
+            [['created_at', 'updated_at'], 'safe'],
+            [['type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'bcs_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
             [['eid', 'vid', 'name', 'gender', 'age', 'health'], 'string', 'max' => 255],
-            [['eid'], 'unique'],
-            [['vid'], 'unique'],
+            [['eid', 'vid'], 'unique'],
             [['is_deleted'], 'boolean'],
+            [['birthdate'], 'date', 'format' => 'php:Y-m-d'],
+            [['birthdate'], 'validateBirthdate'],
         ];
     }
 
@@ -45,7 +46,7 @@ class Livestock extends ActiveRecord
             'chest_size' => 'Chest Size',
             'body_weight' => 'Body Weight',
             'health' => 'Health',
-            'bcs' => 'BCS',
+            'bcs_id' => 'BCS',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
@@ -53,31 +54,53 @@ class Livestock extends ActiveRecord
 
     public function fields()
     {
-        return [
-            'id',
-            'eid',
-            'vid',
-            'name',
-            'birthdate',
-            'type_of_livestock_id',
-            'breed_of_livestock_id',
-            'maintenance_id',
-            'source_id',
-            'ownership_status_id',
-            'reproduction_id',
-            'gender',
-            'age',
-            'chest_size',
-            'body_weight',
-            'health',
-            'bcs',
-            'created_at' => function ($model) {
-                return Yii::$app->formatter->asDatetime($model->created_at);
-            },
-            'updated_at' => function ($model) {
-                return Yii::$app->formatter->asDatetime($model->updated_at);
-            },
-        ];
+        $fields = parent::fields();
+
+        $fields['type_of_livestock'] = function ($model) {
+            return $model->typeOfLivestock->name;
+        };
+
+        $fields['breed_of_livestock'] = function ($model) {
+            return $model->breedOfLivestock->name;
+        };
+
+        $fields['maintenance'] = function ($model) {
+            return $model->maintenance->name;
+        };
+
+        $fields['source'] = function ($model) {
+            return $model->source->name;
+        };
+
+        $fields['ownership_status'] = function ($model) {
+            return $model->ownershipStatus->name;
+        };
+
+        $fields['reproduction'] = function ($model) {
+            return $model->reproduction->name;
+        };
+
+        $fields['bcs'] = function ($model) {
+            return $model->bodyCountScore->name;
+        };
+
+        $fields['chest_size'] = function ($model) {
+            return $model->chest_size . ' cm';
+        };
+
+        $fields['body_weight'] = function ($model) {
+            return $model->body_weight . ' kg';
+        };
+
+        $fields['created_at'] = function ($model) {
+            return Yii::$app->formatter->asDatetime($model->created_at);
+        };
+
+        $fields['updated_at'] = function ($model) {
+            return Yii::$app->formatter->asDatetime($model->updated_at);
+        };
+
+        return $fields;
     }
 
     public function extraFields()
@@ -85,6 +108,16 @@ class Livestock extends ActiveRecord
         return [
             'is_deleted',
         ];
+    }
+
+    public function validateBirthdate($attribute, $params)
+    {
+        $today = new \DateTime();
+        $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
+
+        if ($birthdate >= $today) {
+            $this->addError($attribute, 'Birthdate must be before today.');
+        }
     }
 
     // Definisikan relasi dengan model TypeOfLivestock
@@ -121,5 +154,11 @@ class Livestock extends ActiveRecord
     public function getReproduction()
     {
         return $this->hasOne(Reproduction::class, ['id' => 'reproduction_id']);
+    }
+
+    // Definisikan relasi dengan model BodyCountScore
+    public function getBodyCountScore()
+    {
+        return $this->hasOne(BodyCountScore::class, ['id' => 'bcs_id']);
     }
 }

@@ -19,7 +19,8 @@ class BreedOfLivestock extends ActiveRecord
             [['is_deleted'], 'boolean'],
             [['updated_at'], 'safe'],
             [['id'], 'integer'],
-            [['name'], 'string', 'max' => 255],
+            [['name'], 'string', 'max' => 50],
+            [['id', 'name'], 'unique', 'filter' => ['is_deleted' => 0]],
         ];
     }
 

@@ -5,11 +5,11 @@ namespace app\models;
 use Yii;
 use yii\db\ActiveRecord;
 
-class TypeOfLivestock extends ActiveRecord
+class BodyCountScore extends ActiveRecord
 {
     public static function tableName()
     {
-        return '{{%type_of_livestock}}';
+        return '{{%bcs}}';
     }
 
     public function rules()
@@ -19,8 +19,7 @@ class TypeOfLivestock extends ActiveRecord
             [['is_deleted'], 'boolean'],
             [['updated_at'], 'safe'],
             [['id'], 'integer'],
-            [['name'], 'string', 'max' => 50],
-            [['id', 'name'], 'unique', 'filter' => ['is_deleted' => 0]],
+            [['name'], 'string', 'max' => 255],
         ];
     }
 

@@ -76,8 +76,6 @@ class RegisterForm extends Model
             $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
             $user->access_token = Yii::$app->security->generateRandomString();
             $user->status = User::STATUS_ACTIVE;
-
-            // Tambahkan kode untuk generate auth_key
             $user->auth_key = Yii::$app->security->generateRandomString();
 
             if ($user->save(false)) {
@@ -88,7 +86,7 @@ class RegisterForm extends Model
                         'username' => $user->username,
                         'email' => $user->email,
                         'role_id' => $user->role_id,
-                        'auth_key' => $user->auth_key, // Tambahkan auth_key ke respons
+                        'auth_key' => $user->auth_key,
                     ],
                     'token' => $user->access_token,
                 ];

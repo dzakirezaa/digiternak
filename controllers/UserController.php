@@ -43,7 +43,7 @@ class UserController extends ActiveController
 
         if ($model->login()) {
             return [
-                'user' => Yii::$app->user->identity, // Tambahkan atribut 'user' dengan data pengguna
+                'user' => Yii::$app->user->identity,
                 'access_token' => Yii::$app->user->identity->access_token,
             ];
         } else {
@@ -138,10 +138,14 @@ class UserController extends ActiveController
         // Validasi dan simpan perubahan profil
         if ($model->editProfile($user)) {
             return [
+                'name' => 'Profile Updated',
                 'message' => 'Profile updated successfully.',
             ];
         } else {
+            Yii::$app->getResponse()->setStatusCode(400); // Set status code 400 Bad Request
             return [
+                'name' => 'Profile Update Failed',
+                'message' => 'Failed to update profile.',
                 'error' => 'Failed to update profile.',
                 'details' => $model->errors,
             ];

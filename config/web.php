@@ -56,6 +56,10 @@ $config = [
                 'person/view/<id:\d+>' => 'person/view',
                 'person/update/<id:\d+>' => 'person/update',
                 'person/delete/<id:\d+>' => 'person/delete',
+                'livestock/view/<id:\d+>' => 'livestock/view',
+                'livestock/update/<id:\d+>' => 'livestock/update',
+                'livestock/delete/<id:\d+>' => 'livestock/delete',
+                'livestock/search/<vid:[^\/]+>' => 'livestock/search',
             ],
         ],
         // 'modules' => [

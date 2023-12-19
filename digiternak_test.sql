@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS livestock (
     chest_size DECIMAL(18,1),
     body_weight DECIMAL(18,1),
     health VARCHAR(255),
-    bcs INT,
+    bcs_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_deleted TINYINT DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -283,6 +283,7 @@ ADD CONSTRAINT fk_maintenance FOREIGN KEY (maintenance_id) REFERENCES maintenanc
 ADD CONSTRAINT fk_source FOREIGN KEY (source_id) REFERENCES source(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_ownership_status FOREIGN KEY (ownership_status_id) REFERENCES ownership_status(id) ON DELETE CASCADE,
 ADD CONSTRAINT fk_reproduction FOREIGN KEY (reproduction_id) REFERENCES reproduction(id) ON DELETE CASCADE;
+ADD CONSTRAINT fk_bcs FOREIGN KEY (bcs_id) REFERENCES bcs(id) ON DELETE CASCADE;
 
 -- Tambahkan Foreign Key Constraint pada Tabel Child
 ALTER TABLE child
