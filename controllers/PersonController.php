@@ -9,6 +9,7 @@ use app\models\Person;
 use yii\web\NotFoundHttpException;
 use yii\web\ServerErrorHttpException;
 use yii\web\BadRequestHttpException;
+use app\models\User;
 
 class PersonController extends ActiveController
 {
@@ -53,6 +54,29 @@ class PersonController extends ActiveController
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
+            // Update user's person_id if the user does not have a person_id yet
+            $userId = Yii::$app->user->identity->id;
+            $user = User::findOne($userId);
+
+            if ($user) {
+                if ($user->person_id === null) {
+                    // If the user does not have a person_id yet, update it
+                    $user->person_id = $model->id;
+                    $user->save(false); // Save without revalidating
+                } else {
+                    // If the user already has a person_id, skip
+                    Yii::$app->getResponse()->setStatusCode(201);
+                    return [
+                        'status' => 'success',
+                        'message' => 'Data diri berhasil dibuat.',
+                        'data' => $model,
+                    ];
+                }
+            } else {
+                // Handle the case where the user is not found
+                throw new NotFoundHttpException('User not found.');
+            }
+
             Yii::$app->getResponse()->setStatusCode(201);
             return [
                 'status' => 'success',
@@ -65,6 +89,7 @@ class PersonController extends ActiveController
             throw new BadRequestHttpException('Failed to create the object due to validation error.', 422);
         }
     }
+
 
     /**
      * Memperbarui data diri berdasarkan ID.

@@ -7,6 +7,7 @@ $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'defaultRoute' => 'user',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -65,26 +66,6 @@ $config = [
                 'note/delete/<id:\d+>' => 'note/delete',
             ],
         ],
-        // 'modules' => [
-        //     'api' => [
-        //         'class' => '\app\modules\api\Module',
-        //         'as authenticator' => [
-        //             'class' => 'yii\filters\auth\HttpBearerAuth',
-        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
-        //         ],
-        //         'as access' => [
-        //             'class' => 'yii\filters\AccessControl',
-        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
-        //             'rules' => [
-        //                 [
-        //                     'actions' => ['profile'],
-        //                     'allow' => true,
-        //                     'roles' => ['@'],  // Hanya user yang sudah login yang dapat mengakses action ini
-        //                 ],
-        //             ],
-        //         ],
-        //     ],
-        // ],
         'formatter' => [
             'dateFormat' => 'Y-m-d',
             'datetimeFormat' => 'Y-m-d H:i:s',

@@ -86,15 +86,14 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $fields = parent::fields();
 
+        // Menambahkan fields yang ingin disertakan dalam response JSON
         $fields['role'] = function () {
             return $this->role;
         };
-
-        // Menambahkan fields created_at dan updated_at
         $fields['created_at'] = 'created_at';
         $fields['updated_at'] = 'updated_at';
 
-        // Menghilangkan fields yang tidak perlu dioutputkan
+        // Menghapus fields yang tidak perlu disertakan dalam response JSON
         unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key']);
 
         return $fields;

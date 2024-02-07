@@ -25,7 +25,7 @@ class UserController extends ActiveController
         // Menambahkan authenticator untuk otentikasi menggunakan access token
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
-            'except' => ['login', 'register', 'logout'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+            'except' => ['register', 'logout'], // Tambahkan action yang tidak memerlukan otentikasi di sini
         ];
 
         return $behaviors;
@@ -41,17 +41,22 @@ class UserController extends ActiveController
         $model = new LoginForm();
         $model->load(Yii::$app->request->getBodyParams(), '');
 
+        // Cek apakah request memiliki access token
+        $accessToken = Yii::$app->request->getHeaders()->get('Authorization');
+        if (!$accessToken) {
+            Yii::$app->session->setFlash('error', 'Access token is required.');
+            return $this->redirect(['user/login']); // Redirect ke halaman login
+        }
+
         if ($model->login()) {
-            return [
-                'user' => Yii::$app->user->identity,
-                'access_token' => Yii::$app->user->identity->access_token,
-            ];
+            // Jika login berhasil, arahkan ke halaman yang diinginkan
+            return $this->redirect(['site/index']); // Gantilah 'site/index' dengan URL halaman yang diinginkan
         } else {
-            Yii::$app->getResponse()->setStatusCode(401); // Set status code 401 Unauthorized
-            return [
-                'error' => 'Login failed',
-                'details' => $model->errors,
-            ];
+            // Jika login gagal, tampilkan pesan kesalahan pada halaman login
+            Yii::$app->session->setFlash('error', 'Login failed.');
+            return $this->render('login', [
+                'model' => $model,
+            ]);
         }
     }
 
@@ -136,7 +141,7 @@ class UserController extends ActiveController
                 'email' => $user->email,
                 'created_at' => Yii::$app->formatter->asDatetime($user->created_at),
                 'updated_at' => Yii::$app->formatter->asDatetime($user->updated_at),
-                // ... tambahkan properti lain yang ingin Anda tampilkan
+                // tambahkan properti lain yang ingin ditampilkan
             ];
         }
 
@@ -157,7 +162,7 @@ class UserController extends ActiveController
             throw new BadRequestHttpException('User not found.');
         }
 
-        $model = new EditProfileForm(); // Gantilah dengan nama formulir edit profil yang sesuai
+        $model = new EditProfileForm();
 
         // Memuat data dari permintaan dengan melewati parameter kedua kosong, sehingga akan memuat semua atribut
         $model->load(Yii::$app->request->getBodyParams(), '');
