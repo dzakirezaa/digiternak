@@ -73,11 +73,12 @@ class User extends ActiveRecord implements IdentityInterface
             [['password_reset_token', 'email', 'username', 'access_token'], 'unique'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
+            // Modifikasi validasi untuk role_id
+            [['role_id'], 'in', 'range' => array_keys(UserRole::roles())],
             [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
         ];
     }
-
 
     /**
      * {@inheritdoc}
@@ -98,6 +99,21 @@ class User extends ActiveRecord implements IdentityInterface
 
         return $fields;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeValidate()
+    {
+        if (parent::beforeValidate()) {
+            $this->role_id = UserRole::find()->select('id')->where(['name' => $this->role_id])->scalar();
+            var_dump($this->role_id); // Cek nilai role_id setelah konversi
+            die(); // Stop eksekusi program untuk memeriksa nilai role_id
+            return true;
+        }
+        return false;
+    }
+
 
     /**
      * {@inheritdoc}
@@ -239,6 +255,24 @@ class User extends ActiveRecord implements IdentityInterface
     public function generatePasswordResetToken()
     {
         $this->password_reset_token = Yii::$app->security->generateRandomString() . '_' . time();
+    }
+
+    /**
+     * Generates new password reset token and sends email to user
+     *
+     * @return bool whether the token is generated and email is sent successfully
+     */
+    public function sendPasswordResetEmail()
+    {
+        $this->generatePasswordResetToken();
+        if ($this->save(false)) {
+            return Yii::$app->mailer->compose(['html' => 'passwordResetToken-html', 'text' => 'passwordResetToken-text'], ['user' => $this])
+                ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' robot'])
+                ->setTo($this->email)
+                ->setSubject('Password reset for ' . Yii::$app->name)
+                ->send();
+        }
+        return false;
     }
 
     /**

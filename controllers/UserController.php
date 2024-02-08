@@ -49,8 +49,16 @@ class UserController extends ActiveController
         }
 
         if ($model->login()) {
-            // Jika login berhasil, arahkan ke halaman yang diinginkan
-            return $this->redirect(['site/index']); // Gantilah 'site/index' dengan URL halaman yang diinginkan
+            // Jika login berhasil
+            $user = Yii::$app->user->identity;
+            // Cek apakah user telah mengisi data diri
+            if ($user->person_id === null) {
+                // Jika belum, arahkan ke halaman untuk mengisi data diri
+                return $this->redirect(['person/create']);
+            } else {
+                // Jika sudah, arahkan ke halaman utama
+                return $this->redirect(['site/index']);
+            }
         } else {
             // Jika login gagal, tampilkan pesan kesalahan pada halaman login
             Yii::$app->session->setFlash('error', 'Login failed.');
@@ -74,16 +82,23 @@ class UserController extends ActiveController
 
         if ($result !== null && isset($result['user'])) {
             Yii::$app->getResponse()->setStatusCode(201); // Set status code 201 Created
-            return [
+            
+            // Menyiapkan pesan JSON
+            $response = [
                 'name' => 'Registration Success', // Contoh atribut 'name'
                 'message' => 'User registered successfully.', // Tambahkan atribut message
                 'user' => $result['user'],
                 'access_token' => $result['token'],
             ];
+        
+            // Redirect ke halaman login
+            Yii::$app->getResponse()->getHeaders()->set('Location', \yii\helpers\Url::to(['user/login'], true));
+        
+            return $response;
         } else {
             Yii::$app->getResponse()->setStatusCode(500); // Set status code 500 Internal Server Error
             return [
-                'name' => 'Registration Failed', // Contoh atribut 'name'
+                'name' => 'Registration Failed',
                 'message' => 'Failed to register user.', // Tambahkan atribut message
                 'error' => 'Failed to register user.',
                 'details' => $model->errors,
@@ -181,6 +196,29 @@ class UserController extends ActiveController
                 'error' => 'Failed to update profile.',
                 'details' => $model->errors,
             ];
+        }
+    }
+
+    /**
+     * Handle request to reset password via email
+     *
+     * @return array|string
+     * @throws BadRequestHttpException
+     */
+    public function actionRequestPasswordReset()
+    {
+        $email = Yii::$app->request->getBodyParam('email');
+        if (!$email) {
+            throw new BadRequestHttpException('Email is required.');
+        }
+        $user = User::findOne(['email' => $email]);
+        if (!$user) {
+            throw new BadRequestHttpException('User not found.');
+        }
+        if ($user->sendPasswordResetEmail()) {
+            return ['message' => 'Password reset email has been sent. Please check your email inbox.'];
+        } else {
+            throw new BadRequestHttpException('Failed to send password reset email.');
         }
     }
 }

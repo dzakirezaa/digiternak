@@ -54,6 +54,7 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'user/request-password-reset' => 'user/request-password-reset',
                 'person/view/<id:\d+>' => 'person/view',
                 'person/update/<id:\d+>' => 'person/update',
                 'person/delete/<id:\d+>' => 'person/delete',
