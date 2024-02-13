@@ -177,29 +177,45 @@ class UserController extends ActiveController
     public function actionEditProfile()
     {
         $user = Yii::$app->user->identity;
-
-        // Periksa apakah pengguna yang sedang login ada
-        if (!$user) {
-            throw new BadRequestHttpException('User not found.');
-        }
-
         $model = new EditProfileForm();
-
-        // Memuat data dari permintaan dengan melewati parameter kedua kosong, sehingga akan memuat semua atribut
         $model->load(Yii::$app->request->getBodyParams(), '');
 
-        // Validasi dan simpan perubahan profil
-        if ($model->editProfile($user)) {
-            return [
-                'name' => 'Profile Updated',
-                'message' => 'Profile updated successfully.',
-            ];
+        if ($model->validate()) {
+            if ($model->username !== $user->username) {
+                // Check if the new username is unique
+                $existingUser = User::findOne(['username' => $model->username]);
+                if ($existingUser !== null) {
+                    Yii::$app->getResponse()->setStatusCode(400); // Bad Request
+                    return [
+                        'name' => 'Edit Profile Failed',
+                        'message' => 'Username is already taken. Please choose a different username.',
+                    ];
+                }
+            }
+
+            $user->username = $model->username;
+
+            if ($user instanceof User && $user->save()) {
+                Yii::$app->getResponse()->setStatusCode(200); // OK
+                return [
+                    'name' => 'Edit Profile Success',
+                    'message' => 'Profile updated successfully.',
+                    'user' => $user,
+                ];
+            } else {
+                Yii::$app->getResponse()->setStatusCode(500); // Internal Server Error
+                return [
+                    'name' => 'Edit Profile Failed',
+                    'message' => 'Failed to update profile.',
+                    'error' => 'Failed to update profile.',
+                    'details' => $user->errors,
+                ];
+            }
         } else {
-            Yii::$app->getResponse()->setStatusCode(400); // Set status code 400 Bad Request
+            Yii::$app->getResponse()->setStatusCode(400); // Bad Request
             return [
-                'name' => 'Profile Update Failed',
-                'message' => 'Failed to update profile.',
-                'error' => 'Failed to update profile.',
+                'name' => 'Edit Profile Failed',
+                'message' => 'Invalid data provided.',
                 'details' => $model->errors,
             ];
         }

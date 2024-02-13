@@ -7,25 +7,25 @@ use yii\base\Model;
 class EditProfileForm extends Model
 {
     public $username;
-    public $email;
 
+    /**
+     * @return array the validation rules.
+     */
     public function rules()
     {
         return [
-            [['username', 'email'], 'required'],
-            ['email', 'email'],
+            ['username', 'required'],
+            ['username', 'string', 'max' => 50],
         ];
     }
 
-    public function editProfile(User $user)
+    /**
+     * @return array customized attribute labels
+     */
+    public function attributeLabels()
     {
-        if ($this->validate()) {
-            $user->username = $this->username;
-            $user->email = $this->email;
-
-            return $user->save();
-        }
-
-        return false;
+        return [
+            'username' => 'Username',
+        ];
     }
 }

@@ -64,7 +64,7 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['username', 'role_id'], 'required'],
+            ['username', 'required'],
             [['person_id', 'status', 'role_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['email', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
@@ -131,7 +131,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
+        return static::findOne(['auth_key' => $token]);
     }
 
     /**
