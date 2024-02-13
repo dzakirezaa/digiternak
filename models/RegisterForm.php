@@ -6,6 +6,9 @@ use Yii;
 use yii\base\Model;
 use app\models\User;
 
+/**
+ * RegisterForm is the model behind the user registration form.
+ */
 class RegisterForm extends Model
 {
     public $username;
@@ -64,7 +67,7 @@ class RegisterForm extends Model
     /**
      * Register a new user
      *
-     * 
+     * @return array|null Return user data if registration is successful, otherwise return null.
      */
     public function register()
     {
@@ -74,9 +77,7 @@ class RegisterForm extends Model
             $user->email = $this->email;
             $user->role_id = $this->role_id;
             $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
-            $user->access_token = Yii::$app->security->generateRandomString();
             $user->status = User::STATUS_ACTIVE;
-            $user->auth_key = Yii::$app->security->generateRandomString();
 
             if ($user->save(false)) {
                 Yii::debug('User saved successfully', __METHOD__);
@@ -86,9 +87,7 @@ class RegisterForm extends Model
                         'username' => $user->username,
                         'email' => $user->email,
                         'role_id' => $user->role_id,
-                        'auth_key' => $user->auth_key,
                     ],
-                    'token' => $user->access_token,
                 ];
             } else {
                 Yii::debug('Failed to save user: ' . print_r($user->errors, true), __METHOD__);

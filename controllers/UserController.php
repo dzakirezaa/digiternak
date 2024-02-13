@@ -25,7 +25,7 @@ class UserController extends ActiveController
         // Menambahkan authenticator untuk otentikasi menggunakan access token
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
-            'except' => ['register', 'logout'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+            'except' => ['register', 'login', 'logout'], // Tambahkan action yang tidak memerlukan otentikasi di sini
         ];
 
         return $behaviors;
@@ -41,30 +41,37 @@ class UserController extends ActiveController
         $model = new LoginForm();
         $model->load(Yii::$app->request->getBodyParams(), '');
 
-        // Cek apakah request memiliki access token
-        $accessToken = Yii::$app->request->getHeaders()->get('Authorization');
-        if (!$accessToken) {
-            Yii::$app->session->setFlash('error', 'Access token is required.');
-            return $this->redirect(['user/login']); // Redirect ke halaman login
-        }
-
         if ($model->login()) {
             // Jika login berhasil
-            $user = Yii::$app->user->identity;
+            $user = User::findByUsername($model->username);
+
             // Cek apakah user telah mengisi data diri
             if ($user->person_id === null) {
-                // Jika belum, arahkan ke halaman untuk mengisi data diri
-                return $this->redirect(['person/create']);
+                // Jika belum, beri tahu klien bahwa pengguna perlu mengisi data diri
+                Yii::$app->response->statusCode = 201; // Created
+                return [
+                    'name' => 'Login Success',
+                    'message' => 'Please complete your profile.',
+                    'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['person/create']),
+                    'auth_key' => $user->auth_key
+                ];
             } else {
-                // Jika sudah, arahkan ke halaman utama
-                return $this->redirect(['site/index']);
+                // Jika sudah, beri tahu klien bahwa pengguna berhasil login
+                Yii::$app->response->statusCode = 200; // OK
+                return [
+                    'name' => 'Login Success',
+                    'message' => 'User logged in successfully.',
+                    'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['site/index']),
+                    'auth_key' => $user->auth_key
+                ];
             }
         } else {
-            // Jika login gagal, tampilkan pesan kesalahan pada halaman login
-            Yii::$app->session->setFlash('error', 'Login failed.');
-            return $this->render('login', [
-                'model' => $model,
-            ]);
+            // Jika login gagal
+            Yii::$app->response->statusCode = 401; // Unauthorized
+            return [
+                'name' => 'Login Failed',
+                'message' => 'Invalid username or password.'
+            ];
         }
     }
 
@@ -88,7 +95,6 @@ class UserController extends ActiveController
                 'name' => 'Registration Success', // Contoh atribut 'name'
                 'message' => 'User registered successfully.', // Tambahkan atribut message
                 'user' => $result['user'],
-                'access_token' => $result['token'],
             ];
         
             // Redirect ke halaman login

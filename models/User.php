@@ -5,8 +5,9 @@ namespace app\models;
 use Yii;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
-use yii\web\IdentityInterface;
 use yii\db\Expression;
+use yii\web\IdentityInterface;
+use yii\base\NotSupportedException;
 
 /**
  * User model
@@ -24,15 +25,13 @@ use yii\db\Expression;
  * @property string $password write-only password
  * @property integer $person_id
  * @property integer $role_id
- * @property string $access_token
- * 
  */
+
 class User extends ActiveRecord implements IdentityInterface
 {
     const STATUS_DELETED = 0;
     const STATUS_INACTIVE = 9;
     const STATUS_ACTIVE = 10;
-
 
     /**
      * {@inheritdoc}
@@ -51,8 +50,8 @@ class User extends ActiveRecord implements IdentityInterface
             [
                 'class' => TimestampBehavior::class,
                 'attributes' => [
-                    \yii\db\BaseActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
-                    \yii\db\BaseActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
                 'value' => new Expression('NOW()'),
             ],
@@ -65,15 +64,14 @@ class User extends ActiveRecord implements IdentityInterface
     public function rules()
     {
         return [
-            [['username', 'password_hash', 'role_id', 'access_token'], 'required'],
+            [['username', 'role_id'], 'required'],
             [['person_id', 'status', 'role_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
-            [['username', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token', 'access_token'], 'string', 'max' => 255],
-            [['email'], 'string', 'max' => 255],
-            [['password_reset_token', 'email', 'username', 'access_token'], 'unique'],
+            [['email', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
+            [['username'], 'string', 'max' => 50],
+            [['password_reset_token', 'email', 'username'], 'unique'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
-            // Modifikasi validasi untuk role_id
             [['role_id'], 'in', 'range' => array_keys(UserRole::roles())],
             [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
@@ -106,14 +104,19 @@ class User extends ActiveRecord implements IdentityInterface
     public function beforeValidate()
     {
         if (parent::beforeValidate()) {
-            $this->role_id = UserRole::find()->select('id')->where(['name' => $this->role_id])->scalar();
-            var_dump($this->role_id); // Cek nilai role_id setelah konversi
-            die(); // Stop eksekusi program untuk memeriksa nilai role_id
-            return true;
+            // Konversi role_id dari nama ke ID
+            $roleId = UserRole::find()->select('id')->where(['name' => $this->role_id])->scalar();
+            if ($roleId !== null) {
+                $this->role_id = $roleId;
+                return true;
+            } else {
+                // Tangani kasus di mana tidak ada peran yang cocok
+                $this->addError('role_id', 'Invalid role name.');
+                return false;
+            }
         }
         return false;
     }
-
 
     /**
      * {@inheritdoc}
@@ -128,7 +131,7 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public static function findIdentityByAccessToken($token, $type = null)
     {
-        return self::find()->andWhere(['access_token' => $token])->one();
+        throw new NotSupportedException('"findIdentityByAccessToken" is not implemented.');
     }
 
     /**
@@ -236,17 +239,11 @@ class User extends ActiveRecord implements IdentityInterface
     }
 
     /**
-     * Generates "remember me" authentication key
+     * Generates authentication key
      */
     public function generateAuthKey()
     {
         $this->auth_key = Yii::$app->security->generateRandomString();
-    }
-
-    // Generate access token
-    public function generateAccessToken()
-    {
-        $this->access_token = Yii::$app->security->generateRandomString();
     }
 
     /**
@@ -266,7 +263,7 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $this->generatePasswordResetToken();
         if ($this->save(false)) {
-            return Yii::$app->mailer->compose(['html' => 'passwordResetToken-html', 'text' => 'passwordResetToken-text'], ['user' => $this])
+            return Yii::$app->mailer->compose(['html' => 'html', 'text' => 'text'], ['user' => $this])
                 ->setFrom([Yii::$app->params['supportEmail'] => Yii::$app->name . ' robot'])
                 ->setTo($this->email)
                 ->setSubject('Password reset for ' . Yii::$app->name)
