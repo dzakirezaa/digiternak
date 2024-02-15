@@ -28,4 +28,15 @@ class EditProfileForm extends Model
             'username' => 'Username',
         ];
     }
+
+    /**
+     * @inheritdoc
+     */
+    public function beforeValidate()
+    {
+        // Unset all attributes except username before validation
+        $this->setAttributes(['username' => $this->username]);
+
+        return parent::beforeValidate();
+    }
 }

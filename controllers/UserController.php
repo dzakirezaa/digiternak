@@ -195,12 +195,12 @@ class UserController extends ActiveController
 
             $user->username = $model->username;
 
-            if ($user instanceof User && $user->save()) {
+            if ($user instanceof User && $user->save(false)) {
                 Yii::$app->getResponse()->setStatusCode(200); // OK
                 return [
                     'name' => 'Edit Profile Success',
                     'message' => 'Profile updated successfully.',
-                    'user' => $user,
+                    'user' => $this->formatUser($user),
                 ];
             } else {
                 Yii::$app->getResponse()->setStatusCode(500); // Internal Server Error
@@ -243,4 +243,13 @@ class UserController extends ActiveController
             throw new BadRequestHttpException('Failed to send password reset email.');
         }
     }
+
+    // Format user data for response
+    private function formatUser($user)
+    {
+        $formattedUser = $user->toArray();
+        $formattedUser['updated_at'] = Yii::$app->formatter->asDatetime($user->updated_at);
+        return $formattedUser;
+    }
 }
+
