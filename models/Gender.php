@@ -19,7 +19,7 @@ class Gender extends ActiveRecord
     {
         return [
             [['name'], 'required'],
-            [['name'], 'string', 'max' => 255],
+            [['name'], 'string', 'max' => 50],
         ];
     }
 

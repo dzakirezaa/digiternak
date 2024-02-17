@@ -9,6 +9,7 @@ use app\models\User;
 use app\models\LoginForm;
 use app\models\RegisterForm;
 use app\models\EditProfileForm;
+use app\models\RequestPasswordResetForm;
 use yii\web\BadRequestHttpException;
 
 class UserController extends ActiveController
@@ -229,19 +230,20 @@ class UserController extends ActiveController
      */
     public function actionRequestPasswordReset()
     {
-        $email = Yii::$app->request->getBodyParam('email');
-        if (!$email) {
-            throw new BadRequestHttpException('Email is required.');
+        $model = new RequestPasswordResetForm();
+        if ($model->load(Yii::$app->request->getBodyParams(), '') && $model->validate()) {
+            if ($model->sendEmail()) { // Periksa apakah email berhasil dikirim
+                return ['success' => true];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Failed to send password reset email.'
+                ];
+            }
         }
-        $user = User::findOne(['email' => $email]);
-        if (!$user) {
-            throw new BadRequestHttpException('User not found.');
-        }
-        if ($user->sendPasswordResetEmail()) {
-            return ['message' => 'Password reset email has been sent. Please check your email inbox.'];
-        } else {
-            throw new BadRequestHttpException('Failed to send password reset email.');
-        }
+
+        Yii::$app->getResponse()->setStatusCode(400); // Bad Request
+        return $model;
     }
 
     // Format user data for response
