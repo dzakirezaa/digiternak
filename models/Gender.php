@@ -18,8 +18,8 @@ class Gender extends ActiveRecord
     public function rules()
     {
         return [
-            [['name'], 'required'],
-            [['name'], 'string', 'max' => 50],
+            [['gender_name'], 'required'],
+            [['gender_name'], 'string', 'max' => 50],
         ];
     }
 
@@ -31,7 +31,7 @@ class Gender extends ActiveRecord
         $fields = parent::fields();
 
         // Hapus fields yang tidak perlu dari output JSON
-        unset($fields['created_at'], $fields['updated_at']);
+        unset($fields['created_at'], $fields['updated_at'], $fields['is_deleted'], $fields['id']);
 
         return $fields;
     }

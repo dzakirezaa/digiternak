@@ -35,14 +35,16 @@ class Person extends ActiveRecord
     {
         return [
             [['nik', 'first_name'], 'required'],
-            [['nik'], 'unique'],
-            [['birthdate'], 'date', 'format' => 'php:Y-m-d'],
+            [['nik'], 'string', 'max' => 16],
+            [['nik'], 'match', 'pattern' => '/^\d{16}$/', 'message' => 'NIK must be a string of 16 digits.'],
+            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid birthdate format. Use YYYY-MM-DD format.'],
             [['birthdate'], 'validateBirthdate'],
             [['is_deleted'], 'boolean'],
             [['created_at', 'updated_at'], 'safe'],
             [['first_name', 'middle_name', 'last_name'], 'string', 'max' => 255],
-            [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/'],
-            [['address_id', 'gender_id'], 'integer'],
+            [['first_name', 'middle_name', 'last_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Name must contain only letters and spaces.'],
+            [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Invalid phone number format. Use 08xxxxxxxxxx format.'],
+            [['address_id', 'gender_id', 'user_id'], 'integer'],
             [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']],
             [['address_id'], 'exist', 'skipOnError' => true, 'targetClass' => Address::class, 'targetAttribute' => ['address_id' => 'id']],
         ];
@@ -73,6 +75,10 @@ class Person extends ActiveRecord
         // Menambahkan field terkait relasi untuk output JSON
         $fields['gender'] = 'gender';
         $fields['address'] = 'address';
+        $fields['user_id'] = 'user_id';
+
+        // Menghapus fields yang tidak perlu disertakan dalam response JSON
+        unset($fields['created_at'], $fields['updated_at'], $fields['is_deleted']);
 
         return $fields;
     }
@@ -96,6 +102,28 @@ class Person extends ActiveRecord
 
         if ($birthdate >= $today) {
             $this->addError($attribute, 'Birthdate must be before today.');
+        }
+    }
+
+    public function afterSave($insert, $changedAttributes)
+    {
+        parent::afterSave($insert, $changedAttributes);
+
+        // Check if the user is authenticated
+        $userId = Yii::$app->user->identity->id;
+
+        // Check if the user already has a person_id
+        $user = User::findOne($userId);
+        if ($user && $user->person_id === null) {
+            // Update user's person_id with the newly created person's id
+            $user->person_id = $this->id;
+            $user->save(false); // Save without revalidating
+        }
+
+        // Update person's user_id if it's null
+        if ($this->user_id === null) {
+            $this->user_id = $userId;
+            $this->save(false); // Save without revalidating
         }
     }
 }

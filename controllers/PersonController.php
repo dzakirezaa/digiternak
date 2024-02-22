@@ -50,31 +50,30 @@ class PersonController extends ActiveController
      */
     public function actionCreate()
     {
+        // Check if user already has a person_id
+        $userId = Yii::$app->user->identity->id;
+        $user = User::findOne($userId);
+
+        if ($user && $user->person_id !== null) {
+            throw new BadRequestHttpException('Anda sudah memiliki data diri yang terdaftar.');
+        }
+
+        // Check if user already has a person record based on bearer token
+        $existingPerson = Person::findOne(['user_id' => $userId]);
+
+        if ($existingPerson) {
+            throw new BadRequestHttpException('Anda sudah memiliki data diri yang terdaftar.');
+        }
+
+        // Proceed to create new person
         $model = new Person();
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
-            // Update user's person_id if the user does not have a person_id yet
-            $userId = Yii::$app->user->identity->id;
-            $user = User::findOne($userId);
-
+            // Update user's person_id
             if ($user) {
-                if ($user->person_id === null) {
-                    // If the user does not have a person_id yet, update it
-                    $user->person_id = $model->id;
-                    $user->save(false); // Save without revalidating
-                } else {
-                    // If the user already has a person_id, skip
-                    Yii::$app->getResponse()->setStatusCode(201);
-                    return [
-                        'status' => 'success',
-                        'message' => 'Data diri berhasil dibuat.',
-                        'data' => $model,
-                    ];
-                }
-            } else {
-                // Handle the case where the user is not found
-                throw new NotFoundHttpException('User not found.');
+                $user->person_id = $model->id;
+                $user->save(false);
             }
 
             Yii::$app->getResponse()->setStatusCode(201);
@@ -84,12 +83,11 @@ class PersonController extends ActiveController
                 'data' => $model,
             ];
         } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Failed to create the object for unknown reason.');
+            throw new ServerErrorHttpException('Gagal membuat objek karena alasan yang tidak diketahui.');
         } else {
-            throw new BadRequestHttpException('Failed to create the object due to validation error.', 422);
+            throw new BadRequestHttpException('Gagal membuat objek karena kesalahan validasi.', 422);
         }
     }
-
 
     /**
      * Memperbarui data diri berdasarkan ID.
