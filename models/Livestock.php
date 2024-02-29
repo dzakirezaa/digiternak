@@ -15,12 +15,15 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health', 'bcs_id'], 'required'],
+            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required'],
             [['created_at', 'updated_at'], 'safe'],
-            [['type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'bcs_id'], 'integer'],
+            [['eid', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
-            [['eid', 'vid', 'name', 'gender', 'age', 'health'], 'string', 'max' => 255],
+            [['name', 'gender', 'age', 'health'], 'string', 'max' => 255],
+            [['vid', 'cage'], 'string', 'max' => 10],
             [['eid', 'vid'], 'unique'],
+            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/'],
+            [['cage'], 'match', 'pattern' => '/^[A-Z]{3}\d{3}$/'], 
             [['is_deleted'], 'boolean'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d'],
             [['birthdate'], 'validateBirthdate'],
@@ -32,7 +35,7 @@ class Livestock extends ActiveRecord
         return [
             'id' => 'ID',
             'eid' => 'EID',
-            'vid' => 'VID',
+            'vid' => 'Visual ID',
             'name' => 'Name',
             'birthdate' => 'Birthdate',
             'type_of_livestock_id' => 'Type of Livestock ID',
@@ -46,7 +49,8 @@ class Livestock extends ActiveRecord
             'chest_size' => 'Chest Size',
             'body_weight' => 'Body Weight',
             'health' => 'Health',
-            'bcs_id' => 'BCS',
+            // 'bcs_id' => 'BCS',
+            'cage' => 'Cage',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
@@ -57,32 +61,50 @@ class Livestock extends ActiveRecord
         $fields = parent::fields();
 
         $fields['type_of_livestock'] = function ($model) {
-            return $model->typeOfLivestock->name;
+            return [
+                'id' => $model->type_of_livestock_id,
+                'name' => $model->typeOfLivestock->name,
+            ];
         };
-
+    
         $fields['breed_of_livestock'] = function ($model) {
-            return $model->breedOfLivestock->name;
+            return [
+                'id' => $model->breed_of_livestock_id,
+                'name' => $model->breedOfLivestock->name,
+            ];
         };
-
+    
         $fields['maintenance'] = function ($model) {
-            return $model->maintenance->name;
+            return [
+                'id' => $model->maintenance_id,
+                'name' => $model->maintenance->name,
+            ];
         };
-
+    
         $fields['source'] = function ($model) {
-            return $model->source->name;
+            return [
+                'id' => $model->source_id,
+                'name' => $model->source->name,
+            ];
         };
-
+    
         $fields['ownership_status'] = function ($model) {
-            return $model->ownershipStatus->name;
+            return [
+                'id' => $model->ownership_status_id,
+                'name' => $model->ownershipStatus->name,
+            ];
         };
-
+    
         $fields['reproduction'] = function ($model) {
-            return $model->reproduction->name;
+            return [
+                'id' => $model->reproduction_id,
+                'name' => $model->reproduction->name,
+            ];
         };
 
-        $fields['bcs'] = function ($model) {
-            return $model->bodyCountScore->name;
-        };
+        // $fields['bcs'] = function ($model) {
+        //     return $model->bodyCountScore->name;
+        // };
 
         $fields['chest_size'] = function ($model) {
             return $model->chest_size . ' cm';
@@ -93,12 +115,14 @@ class Livestock extends ActiveRecord
         };
 
         $fields['created_at'] = function ($model) {
-            return Yii::$app->formatter->asDatetime($model->created_at);
+            return Yii::$app->formatter->asDatetime($model->created_at, 'php:Y-m-d H:i:s');
+        };
+    
+        $fields['updated_at'] = function ($model) {
+            return Yii::$app->formatter->asDatetime($model->updated_at, 'php:Y-m-d H:i:s');
         };
 
-        $fields['updated_at'] = function ($model) {
-            return Yii::$app->formatter->asDatetime($model->updated_at);
-        };
+        unset($fields['type_of_livestock_id'], $fields['breed_of_livestock_id'], $fields['maintenance_id'], $fields['source_id'], $fields['ownership_status_id'], $fields['reproduction_id'], $fields['is_deleted']);
 
         return $fields;
     }
@@ -118,6 +142,17 @@ class Livestock extends ActiveRecord
         if ($birthdate >= $today) {
             $this->addError($attribute, 'Birthdate must be before today.');
         }
+    }
+
+    public function afterSave($insert, $changedAttributes)
+    {
+        parent::afterSave($insert, $changedAttributes);
+
+        // Ambil person_id dari user yang sedang login
+        $personId = Yii::$app->user->identity->person_id;
+
+        // Simpan person_id
+        $this->updateAttributes(['person_id' => $personId]);
     }
 
     // Definisikan relasi dengan model TypeOfLivestock
@@ -156,9 +191,14 @@ class Livestock extends ActiveRecord
         return $this->hasOne(Reproduction::class, ['id' => 'reproduction_id']);
     }
 
-    // Definisikan relasi dengan model BodyCountScore
-    public function getBodyCountScore()
+    public function getPerson()
     {
-        return $this->hasOne(BodyCountScore::class, ['id' => 'bcs_id']);
+        return $this->hasOne(Person::class, ['id' => 'person_id']);
     }
+
+    // // Definisikan relasi dengan model BodyCountScore
+    // public function getBodyCountScore()
+    // {
+    //     return $this->hasOne(BodyCountScore::class, ['id' => 'bcs_id']);
+    // }
 }

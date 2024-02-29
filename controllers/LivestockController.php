@@ -140,6 +140,11 @@ class LivestockController extends ActiveController
      */
     public function actionSearch($vid)
     {
+        // Validasi pola VID
+        if (!preg_match('/^[A-Z]{3}\d{4}$/', $vid)) {
+            throw new BadRequestHttpException('Invalid VID format. VID must consist of 3 uppercase letters followed by 4 digits.');
+        }
+
         $livestock = Livestock::find()->where(['vid' => $vid])->all();
 
         if ($livestock) {
