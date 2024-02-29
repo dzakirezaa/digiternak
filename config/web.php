@@ -72,7 +72,8 @@ $config = [
             'datetimeFormat' => 'Y-m-d H:i:s',
             'timeFormat' => 'H:i:s',
             'locale' => 'id_ID', 
-        ],
+            'timeZone' => 'Asia/Jakarta',
+        ],        
     ],
     'params' => $params,
 ];

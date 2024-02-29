@@ -119,7 +119,7 @@ class Livestock extends ActiveRecord
         };
     
         $fields['updated_at'] = function ($model) {
-            return Yii::$app->formatter->asDatetime($model->updated_at, 'php:Y-m-d H:i:s');
+            return Yii::$app->formatter->asDatetime(time(), 'php:Y-m-d H:i:s');
         };
 
         unset($fields['type_of_livestock_id'], $fields['breed_of_livestock_id'], $fields['maintenance_id'], $fields['source_id'], $fields['ownership_status_id'], $fields['reproduction_id'], $fields['is_deleted']);
