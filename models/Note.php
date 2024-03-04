@@ -15,15 +15,14 @@ class Note extends ActiveRecord
     public function rules()
     {
         return [
-            [['livestock_vid', 'date_recorded', 'details'], 'required'],
-            [['date_recorded', 'created_at', 'updated_at'], 'safe'],
+            [['livestock_vid', 'livestock_cage', 'date_recorded', 'location', 'livestock_feed', 'costs'], 'required'],
             [['date_recorded'], 'date', 'format' => 'php:Y-m-d'],
-            [['details'], 'string'],
-            [['livestock_vid'], 'string', 'max' => 255],
-            [['documentation_path'], 'string', 'max' => 255],
-            ['livestock_vid', 'validateLivestockVid'],
-            [['date_recorded'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak valid. Gunakan format yyyy-mm-dd.'],
             [['date_recorded'], 'compare', 'compareValue' => date('Y-m-d'), 'operator' => '<=', 'message' => 'Tanggal harus hari ini atau sebelum hari ini.'],
+            [['livestock_vid', 'livestock_cage'], 'string', 'max' => 10],
+            [['location', 'livestock_feed'], 'string', 'max' => 255],
+            [['details'], 'string'],
+            [['costs'], 'string', 'max' => 20],
+            [['documentation'], 'file', 'maxFiles' => 5, 'maxSize' => 1024 * 1024 * 5], // Maksimum 5 file, 5 MB per file
         ];
     }
 
@@ -32,30 +31,24 @@ class Note extends ActiveRecord
         return [
             'id' => 'ID',
             'livestock_vid' => 'Livestock VID',
+            'livestock_cage' => 'Livestock Cage',
             'date_recorded' => 'Date Recorded',
+            'location' => 'Location',
+            'livestock_feed' => 'Livestock Feed',
             'details' => 'Details',
-            'documentation_path' => 'Documentation Path',
+            'costs' => 'Costs',
+            'documentation' => 'Documentation',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
     }
 
-    public function validateLivestockVid($attribute, $params)
-    {
-        $livestock = Livestock::findOne(['vid' => $this->$attribute]);
-
-        if ($livestock === null) {
-            $this->addError($attribute, 'Livestock with specified VID not found.');
-        }
-    }
-
-    public function fields()
-    {
-        $fields = parent::fields();
-        $fields['date_recorded'] = function ($model) {
-            return Yii::$app->formatter->asDate($model->date_recorded, 'php:d-m-Y');
-        };
-        return $fields;
-    }
-
+    // public function fields()
+    // {
+    //     $fields = parent::fields();
+    //     $fields['date_recorded'] = function ($model) {
+    //         return Yii::$app->formatter->asDate($model->date_recorded, 'php:Y-m-d');
+    //     };
+    //     return $fields;
+    // }
 }

@@ -66,6 +66,7 @@ $config = [
                 'note/view/<id:\d+>' => 'note/view',
                 'note/update/<id:\d+>' => 'note/update',
                 'note/delete/<id:\d+>' => 'note/delete',
+                'note/upload-documentation/<id:\d+>' => 'note/upload-documentation',
             ],
         ],
         'formatter' => [
@@ -73,7 +74,7 @@ $config = [
             'datetimeFormat' => 'Y-m-d H:i:s',
             'timeFormat' => 'H:i:s',
             'locale' => 'id_ID', 
-            // 'timeZone' => 'Asia/Jakarta',
+            'timeZone' => 'Asia/Jakarta',
         ],        
     ],
     'params' => $params,

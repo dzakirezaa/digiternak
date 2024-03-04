@@ -29,6 +29,12 @@ class LivestockController extends ActiveController
             'except' => ['options'], // Tambahkan action yang tidak memerlukan otentikasi di sini
         ];
 
+        // // Menentukan bahwa parser form-data hanya akan digunakan untuk actionUploadImage
+        // $behaviors['parsers'] = [
+        //     'application/json' => 'yii\web\JsonParser', 
+        //     'multipart/form-data' => 'yii\web\MultipartFormDataParser', // Menggunakan parser form-data
+        // ];
+
         return $behaviors;
     }
 
@@ -180,7 +186,7 @@ class LivestockController extends ActiveController
 
         if ($imageFile !== null) {
             // Simpan gambar ke direktori yang ditentukan
-            $uploadPath = 'uploads/';
+            $uploadPath = 'uploads/livestock/';
             if (!is_dir($uploadPath)) {
                 FileHelper::createDirectory($uploadPath);
             }
