@@ -9,6 +9,8 @@ use yii\web\NotFoundHttpException;
 use yii\web\BadRequestHttpException;
 use yii\web\ServerErrorHttpException;
 use app\models\Livestock;
+use yii\web\UploadedFile;
+use yii\helpers\FileHelper;
 
 class LivestockController extends ActiveController
 {
@@ -158,6 +160,52 @@ class LivestockController extends ActiveController
                 'status' => 'error',
                 'message' => 'Data Livestock tidak ditemukan.',
             ];
+        }
+    }
+
+    /**
+     * Mengunggah gambar untuk Livestock berdasarkan ID.
+     * @param integer $id
+     * @return mixed
+     * @throws BadRequestHttpException jika tidak ada gambar yang diunggah
+     * @throws ServerErrorHttpException jika gambar tidak dapat disimpan
+     */
+    public function actionUploadImage($id)
+    {
+        // Temukan model Livestock berdasarkan ID
+        $model = $this->findModel($id);
+
+        // Ambil gambar dari request
+        $imageFile = UploadedFile::getInstanceByName('livestock_image');
+
+        if ($imageFile !== null) {
+            // Simpan gambar ke direktori yang ditentukan
+            $uploadPath = 'uploads/';
+            if (!is_dir($uploadPath)) {
+                FileHelper::createDirectory($uploadPath);
+            }
+
+            // Generate nama file yang unik
+            $imageName = Yii::$app->security->generateRandomString(12) . '.' . $imageFile->getExtension();
+
+            // Simpan file ke direktori
+            $imageFile->saveAs($uploadPath . $imageName);
+
+            // Simpan nama file ke atribut di model Livestock
+            $model->livestock_image = $uploadPath . $imageName;
+
+            // Jika penyimpanan model berhasil
+            if ($model->save()) {
+                return [
+                    'status' => 'success',
+                    'message' => 'Image uploaded successfully.',
+                    'data' => $model,
+                ];
+            } else {
+                throw new ServerErrorHttpException('Failed to save the image to the database.');
+            }
+        } else {
+            throw new BadRequestHttpException('No image uploaded.');
         }
     }
 }

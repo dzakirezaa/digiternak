@@ -19,7 +19,7 @@ class Livestock extends ActiveRecord
             [['created_at', 'updated_at'], 'safe'],
             [['eid', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
-            [['name', 'gender', 'age', 'health'], 'string', 'max' => 255],
+            [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
             [['vid', 'cage'], 'string', 'max' => 10],
             [['eid', 'vid'], 'unique'],
             [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/'],
@@ -27,6 +27,7 @@ class Livestock extends ActiveRecord
             [['is_deleted'], 'boolean'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d'],
             [['birthdate'], 'validateBirthdate'],
+            [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 1], // Maks 5 MB, hanya satu file
         ];
     }
 
@@ -51,6 +52,7 @@ class Livestock extends ActiveRecord
             'health' => 'Health',
             // 'bcs_id' => 'BCS',
             'cage' => 'Cage',
+            'livestock_image' => 'Livestock Image',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
