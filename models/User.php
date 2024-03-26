@@ -87,13 +87,15 @@ class User extends ActiveRecord implements IdentityInterface
 
         // Menambahkan fields yang ingin disertakan dalam response JSON
         $fields['role'] = function () {
-            return $this->role;
+            $userRole = UserRole::findOne($this->role_id);
+            return [
+                'id' => $userRole->id,
+                'name' => $userRole->name,
+            ];
         };
-        $fields['created_at'] = 'created_at';
-        $fields['updated_at'] = 'updated_at';
 
         // Menghapus fields yang tidak perlu disertakan dalam response JSON
-        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key']);
+        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status'], $fields['created_at'], $fields['updated_at'], $fields['role_id']);
 
         return $fields;
     }

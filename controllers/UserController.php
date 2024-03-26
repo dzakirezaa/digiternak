@@ -6,6 +6,7 @@ use Yii;
 use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
 use app\models\User;
+use app\models\UserRole;
 use app\models\LoginForm;
 use app\models\RegisterForm;
 use app\models\EditProfileForm;
@@ -51,27 +52,31 @@ class UserController extends ActiveController
                 // Jika belum, beri tahu klien bahwa pengguna perlu mengisi data diri
                 Yii::$app->response->statusCode = 201; // Created
                 return [
-                    'name' => 'Login Success',
-                    'message' => 'Please complete your profile.',
-                    'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['person/create']),
-                    'auth_key' => $user->auth_key
+                    'message' => 'User logged in successfully',
+                    // 'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['person/create']),
+                    'error' => false,
+                    'data' => [
+                        'token' => $user->auth_key
+                    ]
                 ];
             } else {
                 // Jika sudah, beri tahu klien bahwa pengguna berhasil login
                 Yii::$app->response->statusCode = 200; // OK
                 return [
-                    'name' => 'Login Success',
-                    'message' => 'User logged in successfully.',
-                    'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['site/index']),
-                    'auth_key' => $user->auth_key
+                    'message' => 'User logged in successfully',
+                    // 'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['site/index']),
+                    'error' => false,
+                    'data' => [
+                        'token' => $user->auth_key
+                    ]
                 ];
             }
         } else {
             // Jika login gagal
             Yii::$app->response->statusCode = 401; // Unauthorized
             return [
-                'name' => 'Login Failed',
-                'message' => 'Invalid username or password.'
+                'message' => 'Invalid username or password',
+                'error' => true
             ];
         }
     }
@@ -93,21 +98,20 @@ class UserController extends ActiveController
             
             // Menyiapkan pesan JSON
             $response = [
-                'name' => 'Registration Success', // Contoh atribut 'name'
-                'message' => 'User registered successfully.', // Tambahkan atribut message
-                'user' => $result['user'],
+                'message' => 'User registered successfully', // Tambahkan atribut message
+                'error' => false,
+                'data' => $result['user'],
             ];
         
             // Redirect ke halaman login
-            Yii::$app->getResponse()->getHeaders()->set('Location', \yii\helpers\Url::to(['user/login'], true));
+            // Yii::$app->getResponse()->getHeaders()->set('Location', \yii\helpers\Url::to(['user/login'], true));
         
             return $response;
         } else {
             Yii::$app->getResponse()->setStatusCode(500); // Set status code 500 Internal Server Error
             return [
-                'name' => 'Registration Failed',
-                'message' => 'Failed to register user.', // Tambahkan atribut message
-                'error' => 'Failed to register user.',
+                'message' => 'Failed to register user', // Tambahkan atribut message
+                'error' => true,
                 'details' => $model->errors,
             ];
         }
@@ -125,9 +129,8 @@ class UserController extends ActiveController
         // Periksa apakah pengguna yang sedang login ada
         if (!$user) {
             return [
-                'name' => 'Logout Failed',
-                'message' => 'User not found.',
-                'error' => 'User not found.',
+                'message' => 'User not found',
+                'error' => true,
             ];
         }
 
@@ -135,8 +138,8 @@ class UserController extends ActiveController
         Yii::$app->user->logout();
 
         return [
-            'name' => 'Logout Success',
-            'message' => 'User logged out successfully.',
+            'message' => 'User logged out successfully',
+            'error' => false,
         ];
     }
 
@@ -150,24 +153,16 @@ class UserController extends ActiveController
         return Yii::$app->user->identity;
     }
 
-    // Aksi untuk mendapatkan seluruh profil pengguna
+    /**
+     * Handle retrieving all user profiles.
+     *
+     * @return array
+     */
     public function actionAllProfiles()
     {
         $users = User::find()->all();
-        $profiles = [];
 
-        foreach ($users as $user) {
-            $profiles[] = [
-                'id' => $user->id,
-                'username' => $user->username,
-                'email' => $user->email,
-                'created_at' => Yii::$app->formatter->asDatetime($user->created_at),
-                'updated_at' => Yii::$app->formatter->asDatetime($user->updated_at),
-                // tambahkan properti lain yang ingin ditampilkan
-            ];
-        }
-
-        return $profiles;
+        return $users;
     }
 
     /**
@@ -188,8 +183,8 @@ class UserController extends ActiveController
                 if ($existingUser !== null) {
                     Yii::$app->getResponse()->setStatusCode(400); // Bad Request
                     return [
-                        'name' => 'Edit Profile Failed',
-                        'message' => 'Username is already taken. Please choose a different username.',
+                        'message' => 'Username is already taken. Please choose a different username',
+                        'error' => true,
                     ];
                 }
             }
@@ -197,26 +192,26 @@ class UserController extends ActiveController
             $user->username = $model->username;
 
             if ($user instanceof User && $user->save(false)) {
+                $userRole = UserRole::findOne($user->role_id);
                 Yii::$app->getResponse()->setStatusCode(200); // OK
                 return [
-                    'name' => 'Edit Profile Success',
-                    'message' => 'Profile updated successfully.',
-                    'user' => $this->formatUser($user),
+                    'message' => 'Profile updated successfully',
+                    'error' => false,
+                    'data' => $user,
                 ];
             } else {
                 Yii::$app->getResponse()->setStatusCode(500); // Internal Server Error
                 return [
-                    'name' => 'Edit Profile Failed',
-                    'message' => 'Failed to update profile.',
-                    'error' => 'Failed to update profile.',
+                    'message' => 'Failed to update profile',
+                    'error' => true,
                     'details' => $user->errors,
                 ];
             }
         } else {
             Yii::$app->getResponse()->setStatusCode(400); // Bad Request
             return [
-                'name' => 'Edit Profile Failed',
-                'message' => 'Invalid data provided.',
+                'message' => 'Invalid data provided',
+                'error' => true,
                 'details' => $model->errors,
             ];
         }
@@ -233,10 +228,10 @@ class UserController extends ActiveController
         $model = new RequestPasswordResetForm();
         if ($model->load(Yii::$app->request->getBodyParams(), '') && $model->validate()) {
             if ($model->sendEmail()) { // Periksa apakah email berhasil dikirim
-                return ['success' => true];
+                return ['error' => true];
             } else {
                 return [
-                    'success' => false,
+                    'error' => false,
                     'message' => 'Failed to send password reset email.'
                 ];
             }
@@ -247,11 +242,11 @@ class UserController extends ActiveController
     }
 
     // Format user data for response
-    private function formatUser($user)
-    {
-        $formattedUser = $user->toArray();
-        $formattedUser['updated_at'] = Yii::$app->formatter->asDatetime($user->updated_at);
-        return $formattedUser;
-    }
+    // private function formatUser($user)
+    // {
+    //     $formattedUser = $user->toArray();
+    //     $formattedUser['updated_at'] = Yii::$app->formatter->asDatetime($user->updated_at);
+    //     return $formattedUser;
+    // }
 }
 

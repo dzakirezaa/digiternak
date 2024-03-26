@@ -34,19 +34,18 @@ class Person extends ActiveRecord
     public function rules()
     {
         return [
-            [['nik', 'first_name'], 'required'],
+            [['nik', 'full_name'], 'required'],
             [['nik'], 'string', 'max' => 16],
             [['nik'], 'match', 'pattern' => '/^\d{16}$/', 'message' => 'NIK must be a string of 16 digits.'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid birthdate format. Use YYYY-MM-DD format.'],
             [['birthdate'], 'validateBirthdate'],
             [['is_deleted'], 'boolean'],
             [['created_at', 'updated_at'], 'safe'],
-            [['first_name', 'middle_name', 'last_name'], 'string', 'max' => 255],
-            [['first_name', 'middle_name', 'last_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Name must contain only letters and spaces.'],
+            [['full_name', 'address'], 'string', 'max' => 255],
+            [['full_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Name must contain only letters and spaces.'],
             [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Invalid phone number format. Use 08xxxxxxxxxx format.'],
-            [['address_id', 'gender_id', 'user_id'], 'integer'],
-            [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']],
-            [['address_id'], 'exist', 'skipOnError' => true, 'targetClass' => Address::class, 'targetAttribute' => ['address_id' => 'id']],
+            [['gender_id', 'user_id'], 'integer'],
+            [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']]
         ];
     }
 
@@ -55,13 +54,11 @@ class Person extends ActiveRecord
         return [
             'id' => 'ID',
             'nik' => 'NIK',
-            'first_name' => 'First Name',
-            'middle_name' => 'Middle Name',
-            'last_name' => 'Last Name',
+            'full_name' => 'Full Name',
             'birthdate' => 'Birthdate',
             'gender_id' => 'Gender ID',
             'phone_number' => 'Phone Number',
-            'address_id' => 'Address ID',
+            'address' => 'Address',
             'is_deleted' => 'Is Deleted',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
@@ -70,23 +67,21 @@ class Person extends ActiveRecord
 
     public function fields()
     {
-        $fields = parent::fields();
-
-        // Menambahkan field terkait relasi untuk output JSON
-        $fields['gender'] = 'gender';
-        $fields['address'] = 'address';
-        $fields['user_id'] = 'user_id';
-
-        // Menghapus fields yang tidak perlu disertakan dalam response JSON
-        unset($fields['created_at'], $fields['updated_at'], $fields['is_deleted']);
-
-        return $fields;
-    }
-
-    // Definisikan relasi dengan model Address
-    public function getAddress()
-    {
-        return $this->hasOne(Address::class, ['id' => 'address_id']);
+        return [
+            'id',
+            'user_id',
+            'nik',
+            'full_name',
+            'birthdate',
+            'gender' => function () {
+                return [
+                    'id' => $this->gender->id,
+                    'name' => $this->gender->name,
+                ];
+            },
+            'phone_number',
+            'address',
+        ];
     }
 
     // Definisikan relasi dengan model Gender

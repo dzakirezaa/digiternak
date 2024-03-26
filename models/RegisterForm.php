@@ -86,7 +86,10 @@ class RegisterForm extends Model
                         'id' => $user->id,
                         'username' => $user->username,
                         'email' => $user->email,
-                        'role_id' => $user->role_id,
+                        'role' => [
+                            'id' => $user->role_id,
+                            'name' => UserRole::findOne($user->role_id)->name,
+                        ],
                     ],
                 ];
             } else {

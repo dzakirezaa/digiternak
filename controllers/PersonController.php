@@ -48,21 +48,21 @@ class PersonController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data diri tidak dapat disimpan
      */
-    public function actionCreate()
+    public function actionCreatePerson()
     {
         // Check if user already has a person_id
         $userId = Yii::$app->user->identity->id;
         $user = User::findOne($userId);
 
         if ($user && $user->person_id !== null) {
-            throw new BadRequestHttpException('Anda sudah memiliki data diri yang terdaftar.');
+            throw new BadRequestHttpException('You already have a registered person record');
         }
 
         // Check if user already has a person record based on bearer token
         $existingPerson = Person::findOne(['user_id' => $userId]);
 
         if ($existingPerson) {
-            throw new BadRequestHttpException('Anda sudah memiliki data diri yang terdaftar.');
+            throw new BadRequestHttpException('You already have a registered person record');
         }
 
         // Proceed to create new person
@@ -78,14 +78,14 @@ class PersonController extends ActiveController
 
             Yii::$app->getResponse()->setStatusCode(201);
             return [
-                'status' => 'success',
-                'message' => 'Data diri berhasil dibuat.',
+                'message' => 'Person record created successfully',
+                'error' => false,
                 'data' => $model,
             ];
         } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Gagal membuat objek karena alasan yang tidak diketahui.');
+            throw new ServerErrorHttpException('Failed to create the object for unknown reason');
         } else {
-            throw new BadRequestHttpException('Gagal membuat objek karena kesalahan validasi.', 422);
+            throw new BadRequestHttpException('Failed to create the object due to validation error', 422);
         }
     }
 
@@ -97,15 +97,15 @@ class PersonController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data diri tidak dapat disimpan
      */
-    public function actionUpdate($id)
+    public function actionUpdatePerson($id)
     {
         $model = $this->findModel($id);
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
             return [
-                'status' => 'success',
-                'message' => 'Data diri berhasil diperbarui.',
+                'message' => 'Person record updated successfully',
+                'error' => false,
                 'data' => $model,
             ];
         } elseif (!$model->hasErrors()) {
@@ -121,14 +121,14 @@ class PersonController extends ActiveController
      * @throws NotFoundHttpException jika data diri tidak ditemukan
      * @throws ServerErrorHttpException jika data diri tidak dapat dihapus
      */
-    public function actionDelete($id)
+    public function actionDeletePerson($id)
     {
         $model = $this->findModel($id);
         $model->delete();
 
         return [
-            'status' => 'success',
-            'message' => 'Data diri berhasil dihapus.',
+            'message' => 'Person record deleted successfully',
+            'error' => false,
         ];
     }
 
@@ -139,8 +139,8 @@ class PersonController extends ActiveController
     public function actionIndex()
     {
         return [
-            'status' => 'success',
-            'message' => 'Menampilkan semua data diri.',
+            'message' => 'Person records retrieved successfully',
+            'error' => false,
             'data' => Person::find()->all(),
         ];
     }
@@ -156,7 +156,7 @@ class PersonController extends ActiveController
         if (($model = Person::findOne($id)) !== null) {
             return $model;
         } else {
-            throw new NotFoundHttpException('The requested object does not exist.');
+            throw new NotFoundHttpException('The requested object does not exist');
         }
     }
 }
