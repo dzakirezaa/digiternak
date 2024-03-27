@@ -15,19 +15,19 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required'],
+            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
             [['created_at', 'updated_at'], 'safe'],
             [['eid', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
             [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
             [['vid', 'cage'], 'string', 'max' => 10],
-            [['eid', 'vid'], 'unique'],
-            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/'],
-            [['cage'], 'match', 'pattern' => '/^[A-Z]{3}\d{3}$/'], 
+            [['eid', 'vid'], 'unique', 'message' => 'This {attribute} has already been taken'],
+            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'],
+            [['cage'], 'match', 'pattern' => '/^[A-Z]{3}\d{3}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by three digits'], 
             [['is_deleted'], 'boolean'],
-            [['birthdate'], 'date', 'format' => 'php:Y-m-d'],
+            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid date format for {attribute}. Please use the YYYY-MM-DD format'],
             [['birthdate'], 'validateBirthdate'],
-            [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 1], // Maks 5 MB, hanya satu file
+            [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Invalid file format or file size exceeded (maximum 5 MB)'],
         ];
     }
 
@@ -60,7 +60,26 @@ class Livestock extends ActiveRecord
 
     public function fields()
     {
-        $fields = parent::fields();
+        $fields = [
+            'id',
+            'person_id',
+            'eid',
+            'vid',
+            'name',
+            'cage',
+            'birthdate',
+            'gender',
+            'age',
+            'chest_size',
+            'body_weight',
+            'health',
+            'type_of_livestock',
+            'breed_of_livestock',
+            'maintenance',
+            'source',
+            'ownership_status',
+            'reproduction',
+        ];
 
         $fields['type_of_livestock'] = function ($model) {
             return [
@@ -68,45 +87,41 @@ class Livestock extends ActiveRecord
                 'name' => $model->typeOfLivestock->name,
             ];
         };
-    
+
         $fields['breed_of_livestock'] = function ($model) {
             return [
                 'id' => $model->breed_of_livestock_id,
                 'name' => $model->breedOfLivestock->name,
             ];
         };
-    
+
         $fields['maintenance'] = function ($model) {
             return [
                 'id' => $model->maintenance_id,
                 'name' => $model->maintenance->name,
             ];
         };
-    
+
         $fields['source'] = function ($model) {
             return [
                 'id' => $model->source_id,
                 'name' => $model->source->name,
             ];
         };
-    
+
         $fields['ownership_status'] = function ($model) {
             return [
                 'id' => $model->ownership_status_id,
                 'name' => $model->ownershipStatus->name,
             ];
         };
-    
+
         $fields['reproduction'] = function ($model) {
             return [
                 'id' => $model->reproduction_id,
                 'name' => $model->reproduction->name,
             ];
         };
-
-        // $fields['bcs'] = function ($model) {
-        //     return $model->bodyCountScore->name;
-        // };
 
         $fields['chest_size'] = function ($model) {
             return $model->chest_size . ' cm';
@@ -115,16 +130,6 @@ class Livestock extends ActiveRecord
         $fields['body_weight'] = function ($model) {
             return $model->body_weight . ' kg';
         };
-
-        $fields['created_at'] = function ($model) {
-            return Yii::$app->formatter->asDatetime($model->created_at, 'php:Y-m-d H:i:s');
-        };
-    
-        $fields['updated_at'] = function ($model) {
-            return Yii::$app->formatter->asDatetime(time(), 'php:Y-m-d H:i:s');
-        };
-
-        unset($fields['type_of_livestock_id'], $fields['breed_of_livestock_id'], $fields['maintenance_id'], $fields['source_id'], $fields['ownership_status_id'], $fields['reproduction_id'], $fields['is_deleted']);
 
         return $fields;
     }
@@ -142,7 +147,7 @@ class Livestock extends ActiveRecord
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
 
         if ($birthdate >= $today) {
-            $this->addError($attribute, 'Birthdate must be before today.');
+            $this->addError($attribute, 'Birthdate must be before today');
         }
     }
 

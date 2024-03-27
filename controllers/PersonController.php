@@ -9,6 +9,7 @@ use app\models\Person;
 use yii\web\NotFoundHttpException;
 use yii\web\ServerErrorHttpException;
 use yii\web\BadRequestHttpException;
+use yii\web\ForbiddenHttpException;
 use app\models\User;
 
 class PersonController extends ActiveController
@@ -118,19 +119,33 @@ class PersonController extends ActiveController
     /**
      * Menghapus data diri berdasarkan ID.
      * @param integer $id
+     * @return mixed
      * @throws NotFoundHttpException jika data diri tidak ditemukan
-     * @throws ServerErrorHttpException jika data diri tidak dapat dihapus
+     * @throws ForbiddenHttpException jika pengguna tidak diizinkan menghapus data diri
      */
-    public function actionDeletePerson($id)
-    {
-        $model = $this->findModel($id);
-        $model->delete();
+    // public function actionDeletePerson($id)
+    // {
+    //     $model = $this->findModel($id);
+        
+    //     // Pastikan bahwa data diri yang dihapus terkait dengan pengguna yang sedang login
+    //     if ($model->user_id !== Yii::$app->user->id) {
+    //         throw new ForbiddenHttpException('You are not allowed to delete this person record.');
+    //     }
 
-        return [
-            'message' => 'Person record deleted successfully',
-            'error' => false,
-        ];
-    }
+    //     // Simpan ID pengguna sebelum menghapus data diri
+    //     $userId = $model->user_id;
+
+    //     // Hapus hanya data diri
+    //     $model->delete();
+
+    //     // Perbarui person_id pada pengguna menjadi null
+    //     User::updateAll(['person_id' => null], ['id' => $userId]);
+
+    //     return [
+    //         'message' => 'Person record deleted successfully',
+    //         'error' => false,
+    //     ];
+    // }
 
     /**
      * Mengembalikan semua data diri.

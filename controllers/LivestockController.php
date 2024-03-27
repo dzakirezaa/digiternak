@@ -9,6 +9,7 @@ use yii\web\NotFoundHttpException;
 use yii\web\BadRequestHttpException;
 use yii\web\ServerErrorHttpException;
 use app\models\Livestock;
+use app\models\LivestockImage;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
 
@@ -44,18 +45,21 @@ class LivestockController extends ActiveController
      * @return mixed
      * @throws NotFoundHttpException jika data Livestock tidak ditemukan
      */
-    public function actionView($id)
+    public function actionViewLivestock($id)
     {
-        return $this->findModel($id);
+        return [
+            'message' => 'Livestock data found successfully',
+            'error' => false,
+            'data' => $this->findModel($id),
+        ];
     }
 
     /**
      * Membuat data Livestock baru.
      * @return mixed
-     * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
      */
-    public function actionCreate()
+    public function actionCreateLivestock()
     {
         $model = new Livestock();
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
@@ -63,14 +67,22 @@ class LivestockController extends ActiveController
         if ($model->save()) {
             Yii::$app->getResponse()->setStatusCode(201);
             return [
-                'status' => 'success',
-                'message' => 'Data Livestock berhasil dibuat.',
+                'message' => 'Livestock created successfully',
+                'error' => false,
                 'data' => $model,
             ];
         } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Failed to create the object for unknown reason.');
+            throw new ServerErrorHttpException('Failed to create the object for unknown reason');
         } else {
-            throw new BadRequestHttpException('Failed to create the object due to validation error.', 422);
+            $errors = [];
+            foreach ($model->getErrors() as $attribute => $error) {
+                $errors[$attribute] = $error[0];
+            }
+            return [
+                'message' => 'Livestock failed to create',
+                'error' => true,
+                'details' => $errors,
+            ];
         }
     }
 
@@ -82,21 +94,29 @@ class LivestockController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
      */
-    public function actionUpdate($id)
+    public function actionUpdateLivestock($id)
     {
         $model = $this->findModel($id);
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
             return [
-                'status' => 'success',
-                'message' => 'Data Livestock berhasil diperbarui.',
+                'message' => 'Livestock updated successfully',
+                'error' => false,
                 'data' => $model,
             ];
         } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Failed to update the object for unknown reason.');
+            throw new ServerErrorHttpException('Failed to update the object for unknown reason');
         } else {
-            throw new BadRequestHttpException('Failed to update the object due to validation error.', 422);
+            $errors = [];
+            foreach ($model->getErrors() as $attribute => $error) {
+                $errors[$attribute] = $error[0];
+            }
+            return [
+                'message' => 'Livestock failed to update',
+                'error' => true,
+                'details' => $errors,
+            ];
         }
     }
 
@@ -106,14 +126,14 @@ class LivestockController extends ActiveController
      * @throws NotFoundHttpException jika data Livestock tidak ditemukan
      * @throws ServerErrorHttpException jika data Livestock tidak dapat dihapus
      */
-    public function actionDelete($id)
+    public function actionDeleteLivestock($id)
     {
         $model = $this->findModel($id);
         $model->delete();
 
         return [
-            'status' => 'success',
-            'message' => 'Data Livestock berhasil dihapus.',
+            'message' => 'Livestock deleted successfully',
+            'error' => false,
         ];
     }
 
@@ -127,6 +147,37 @@ class LivestockController extends ActiveController
     }
 
     /**
+     * Mencari data Livestock berdasarkan VID.
+     * @param string $vid
+     * @return array
+     */
+    public function actionSearch($vid)
+    {
+        // Validasi pola VID
+        if (!preg_match('/^[A-Z]{3}\d{4}$/', $vid)) {
+            return [
+                'message' => 'VID must follow the pattern of three uppercase letters followed by four digits',
+                'error' => true,
+            ];
+        }
+
+        $livestock = Livestock::find()->where(['vid' => $vid])->all();
+
+        if ($livestock) {
+            return [
+                'message' => 'Livestock data found successfully',
+                'error' => false,
+                'data' => $livestock,
+            ];
+        } else {
+            return [
+                'message' => 'Livestock data not found',
+                'error' => true,
+            ];
+        }
+    }
+
+    /**
      * Menemukan model Livestock berdasarkan ID.
      * @param integer $id
      * @return Livestock the loaded model
@@ -137,35 +188,7 @@ class LivestockController extends ActiveController
         if (($model = Livestock::findOne($id)) !== null) {
             return $model;
         } else {
-            throw new NotFoundHttpException('The requested object does not exist.');
-        }
-    }
-
-    /**
-     * Mencari data Livestock berdasarkan VID.
-     * @param string $vid
-     * @return array
-     */
-    public function actionSearch($vid)
-    {
-        // Validasi pola VID
-        if (!preg_match('/^[A-Z]{3}\d{4}$/', $vid)) {
-            throw new BadRequestHttpException('Invalid VID format. VID must consist of 3 uppercase letters followed by 4 digits.');
-        }
-
-        $livestock = Livestock::find()->where(['vid' => $vid])->all();
-
-        if ($livestock) {
-            return [
-                'status' => 'success',
-                'message' => 'Data Livestock ditemukan.',
-                'data' => $livestock,
-            ];
-        } else {
-            return [
-                'status' => 'error',
-                'message' => 'Data Livestock tidak ditemukan.',
-            ];
+            throw new NotFoundHttpException('The requested object does not exist');
         }
     }
 
@@ -173,7 +196,6 @@ class LivestockController extends ActiveController
      * Mengunggah gambar untuk Livestock berdasarkan ID.
      * @param integer $id
      * @return mixed
-     * @throws BadRequestHttpException jika tidak ada gambar yang diunggah
      * @throws ServerErrorHttpException jika gambar tidak dapat disimpan
      */
     public function actionUploadImage($id)
@@ -182,36 +204,55 @@ class LivestockController extends ActiveController
         $model = $this->findModel($id);
 
         // Ambil gambar dari request
-        $imageFile = UploadedFile::getInstanceByName('livestock_image');
+        $imageFiles = UploadedFile::getInstancesByName('livestock_image');
 
-        if ($imageFile !== null) {
-            // Simpan gambar ke direktori yang ditentukan
-            $uploadPath = 'uploads/livestock/';
+        if (!empty($imageFiles)) {
+            // Ambil person_id dari pengguna yang sedang login
+            $personId = Yii::$app->user->identity->person_id;
+
+            // Buat path direktori berdasarkan person_id dan id Livestock
+            $uploadPath = 'uploads/livestock/' . $personId . '/' . $model->id . '/';
+
+            // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
             if (!is_dir($uploadPath)) {
                 FileHelper::createDirectory($uploadPath);
             }
 
-            // Generate nama file yang unik
-            $imageName = Yii::$app->security->generateRandomString(12) . '.' . $imageFile->getExtension();
+            $uploadedImages = [];
 
-            // Simpan file ke direktori
-            $imageFile->saveAs($uploadPath . $imageName);
-
-            // Simpan nama file ke atribut di model Livestock
-            $model->livestock_image = $uploadPath . $imageName;
+            // Iterasi melalui setiap file yang diunggah
+            foreach ($imageFiles as $index => $imageFile) {
+                // Generate nama file yang unik
+                $imageName = Yii::$app->security->generateRandomString(12) . $index . '.' . $imageFile->getExtension();
+            
+                // Simpan file ke direktori
+                $imageFile->saveAs($uploadPath . $imageName);
+            
+                // Simpan informasi gambar ke dalam tabel livestock_images
+                $livestockImage = new LivestockImage();
+                $livestockImage->livestock_id = $model->id;
+                $livestockImage->image_path = $uploadPath . $imageName;
+                if (!$livestockImage->save()) {
+                    throw new ServerErrorHttpException('Failed to save the image to the database');
+                }
+            
+                // Simpan nama file ke dalam array
+                $uploadedImages[] = $uploadPath . $imageName;
+            }
 
             // Jika penyimpanan model berhasil
-            if ($model->save()) {
-                return [
-                    'status' => 'success',
-                    'message' => 'Image uploaded successfully.',
-                    'data' => $model,
-                ];
-            } else {
-                throw new ServerErrorHttpException('Failed to save the image to the database.');
-            }
+            return [
+                'message' => 'Images uploaded successfully',
+                'error' => false,
+                'data' => [
+                    'livestock_images' => $uploadedImages,
+                ],
+            ];
         } else {
-            throw new BadRequestHttpException('No image uploaded.');
+            return [
+                'message' => 'No images uploaded',
+                'error' => true,
+            ];
         }
     }
 }
