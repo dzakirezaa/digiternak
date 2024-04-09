@@ -19,6 +19,19 @@ class PersonController extends ActiveController
     /**
      * @inheritdoc
      */
+    public function actions()
+    {
+        $actions = parent::actions();
+
+        // Disable default CRUD actions
+        unset($actions['index'], $actions['view'], $actions['create'], $actions['update'], $actions['delete']);
+
+        return $actions;
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function behaviors()
     {
         $behaviors = parent::behaviors();
@@ -49,7 +62,7 @@ class PersonController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data diri tidak dapat disimpan
      */
-    public function actionCreatePerson()
+    public function actionCreate()
     {
         // Check if user already has a person_id
         $userId = Yii::$app->user->identity->id;
@@ -98,7 +111,7 @@ class PersonController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data diri tidak dapat disimpan
      */
-    public function actionUpdatePerson($id)
+    public function actionUpdate($id)
     {
         $model = $this->findModel($id);
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');

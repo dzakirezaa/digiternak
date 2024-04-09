@@ -10,12 +10,26 @@ use yii\web\BadRequestHttpException;
 use yii\web\ServerErrorHttpException;
 use app\models\Livestock;
 use app\models\LivestockImage;
+use app\models\Cage;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
 
 class LivestockController extends ActiveController
 {
     public $modelClass = 'app\models\Livestock';
+
+    /**
+     * @inheritdoc
+     */
+    public function actions()
+    {
+        $actions = parent::actions();
+
+        // Disable default CRUD actions
+        unset($actions['index'], $actions['view'], $actions['create'], $actions['update'], $actions['delete']);
+
+        return $actions;
+    }
 
     /**
      * @inheritdoc
@@ -30,13 +44,26 @@ class LivestockController extends ActiveController
             'except' => ['options'], // Tambahkan action yang tidak memerlukan otentikasi di sini
         ];
 
-        // // Menentukan bahwa parser form-data hanya akan digunakan untuk actionUploadImage
-        // $behaviors['parsers'] = [
-        //     'application/json' => 'yii\web\JsonParser', 
-        //     'multipart/form-data' => 'yii\web\MultipartFormDataParser', // Menggunakan parser form-data
-        // ];
-
         return $behaviors;
+    }
+
+    /**
+     * Mengembalikan semua data Livestock.
+     * @return array
+     */
+    public function actionIndex()
+    {
+        $livestocks = Livestock::find()->all();
+        
+        if (!empty($livestocks)) {
+            return $livestocks;
+        } else {
+            Yii::$app->getResponse()->setStatusCode(404); // Not Found
+            return [
+                'message' => 'Livestocks not found',
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -45,7 +72,7 @@ class LivestockController extends ActiveController
      * @return mixed
      * @throws NotFoundHttpException jika data Livestock tidak ditemukan
      */
-    public function actionViewLivestock($id)
+    public function actionView($id)
     {
         return [
             'message' => 'Livestock data found successfully',
@@ -59,29 +86,39 @@ class LivestockController extends ActiveController
      * @return mixed
      * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
      */
-    public function actionCreateLivestock()
+    public function actionCreate()
     {
         $model = new Livestock();
-        $model->load(Yii::$app->getRequest()->getBodyParams(), '');
+        $requestData = Yii::$app->getRequest()->getBodyParams();
+        $model->load($requestData, '');
+
+        // Validasi cage_id berdasarkan person_id
+        $cageId = $model->cage_id;
+        $personId = Yii::$app->user->identity->person_id;
+        $existingCage = Cage::find()
+            ->where(['id' => $cageId, 'person_id' => $personId])
+            ->exists();
+
+        if (!$existingCage) {
+            return [
+                'message' => 'Cage not found',
+                'error' => true,
+            ];
+        }
 
         if ($model->save()) {
             Yii::$app->getResponse()->setStatusCode(201);
             return [
                 'message' => 'Livestock created successfully',
                 'error' => false,
-                'data' => $model,
+                'data' => $model
             ];
-        } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Failed to create the object for unknown reason');
         } else {
-            $errors = [];
-            foreach ($model->getErrors() as $attribute => $error) {
-                $errors[$attribute] = $error[0];
-            }
+            Yii::$app->getResponse()->setStatusCode(422); // Unprocessable Entity
             return [
-                'message' => 'Livestock failed to create',
+                'message' => 'Failed to create Livestock',
                 'error' => true,
-                'details' => $errors,
+                'details' => $model->getErrors(),
             ];
         }
     }
@@ -94,7 +131,7 @@ class LivestockController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
      */
-    public function actionUpdateLivestock($id)
+    public function actionUpdate($id)
     {
         $model = $this->findModel($id);
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
@@ -126,7 +163,7 @@ class LivestockController extends ActiveController
      * @throws NotFoundHttpException jika data Livestock tidak ditemukan
      * @throws ServerErrorHttpException jika data Livestock tidak dapat dihapus
      */
-    public function actionDeleteLivestock($id)
+    public function actionDelete($id)
     {
         $model = $this->findModel($id);
         $model->delete();
@@ -135,15 +172,6 @@ class LivestockController extends ActiveController
             'message' => 'Livestock deleted successfully',
             'error' => false,
         ];
-    }
-
-    /**
-     * Mengembalikan semua data Livestock.
-     * @return array
-     */
-    public function actionIndex()
-    {
-        return Livestock::find()->all();
     }
 
     /**
@@ -174,21 +202,6 @@ class LivestockController extends ActiveController
                 'message' => 'Livestock data not found',
                 'error' => true,
             ];
-        }
-    }
-
-    /**
-     * Menemukan model Livestock berdasarkan ID.
-     * @param integer $id
-     * @return Livestock the loaded model
-     * @throws NotFoundHttpException jika data Livestock tidak ditemukan
-     */
-    protected function findModel($id)
-    {
-        if (($model = Livestock::findOne($id)) !== null) {
-            return $model;
-        } else {
-            throw new NotFoundHttpException('The requested object does not exist');
         }
     }
 
@@ -253,6 +266,21 @@ class LivestockController extends ActiveController
                 'message' => 'No images uploaded',
                 'error' => true,
             ];
+        }
+    }
+
+    /**
+     * Menemukan model Livestock berdasarkan ID.
+     * @param integer $id
+     * @return Livestock the loaded model
+     * @throws NotFoundHttpException jika data Livestock tidak ditemukan
+     */
+    protected function findModel($id)
+    {
+        if (($model = Livestock::findOne($id)) !== null) {
+            return $model;
+        } else {
+            throw new NotFoundHttpException('The requested object does not exist');
         }
     }
 }

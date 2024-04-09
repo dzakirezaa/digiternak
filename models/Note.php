@@ -15,40 +15,63 @@ class Note extends ActiveRecord
     public function rules()
     {
         return [
-            [['livestock_vid', 'livestock_cage', 'date_recorded', 'location', 'livestock_feed', 'costs'], 'required'],
-            [['date_recorded'], 'date', 'format' => 'php:Y-m-d'],
-            [['date_recorded'], 'compare', 'compareValue' => date('Y-m-d'), 'operator' => '<=', 'message' => 'Tanggal harus hari ini atau sebelum hari ini.'],
-            [['livestock_vid', 'livestock_cage'], 'string', 'max' => 10],
-            [['location', 'livestock_feed'], 'string', 'max' => 255],
-            [['details'], 'string'],
-            [['costs'], 'string', 'max' => 20],
-            [['documentation'], 'file', 'maxFiles' => 5, 'maxSize' => 1024 * 1024 * 5], // Maksimum 5 file, 5 MB per file
+            [['livestock_vid', 'livestock_cage', 'date_recorded', 'location', 'livestock_feed', 'costs'], 'required', 'message' => '{attribute} cannot be blank'],
+            [['date_recorded'], 'date', 'format' => 'php:d F Y', 'message' => 'Invalid date format for {attribute}. Please use the d F Y format'],
+            [['date_recorded'], 'validateDateFormat'],
+            [['livestock_vid'], 'string', 'max' => 10],
+            [['livestock_vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'],
+            [['livestock_cage'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,10}$/', 'message' => '{attribute} must be between 3 and 10 characters long and may contain letters, numbers, and spaces only'],
+            [['location', 'livestock_feed', 'costs', 'details'], 'string', 'max' => 255],
+            [['documentation'], 'file', 'skipOnEmpty' => true, 'maxFiles' => 10, 'extensions' => ['jpg', 'jpeg', 'png'] , 'maxSize' => 1024 * 1024 * 10, 'message' => 'Invalid file format or file size exceeded (maximum 10 MB)'],
+        ];
+    }
+
+    public function fields()
+    {
+        return [
+            'id',
+            'livestock_vid',
+            'livestock_cage',
+            'date_recorded',
+            'location',
+            'livestock_feed',
+            'costs',
+            'details',
         ];
     }
 
     public function attributeLabels()
     {
         return [
-            'id' => 'ID',
-            'livestock_vid' => 'Livestock VID',
-            'livestock_cage' => 'Livestock Cage',
+            'livestock_vid' => 'Visual ID',
+            'livestock_cage' => 'Cage',
             'date_recorded' => 'Date Recorded',
             'location' => 'Location',
             'livestock_feed' => 'Livestock Feed',
-            'details' => 'Details',
             'costs' => 'Costs',
+            'details' => 'Details',
             'documentation' => 'Documentation',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
         ];
     }
 
-    // public function fields()
-    // {
-    //     $fields = parent::fields();
-    //     $fields['date_recorded'] = function ($model) {
-    //         return Yii::$app->formatter->asDate($model->date_recorded, 'php:Y-m-d');
-    //     };
-    //     return $fields;
-    // }
+    public function validateDateFormat($attribute, $params)
+    {
+        // Ambil nilai tanggal dari atribut model
+        $date_recorded = $this->$attribute;
+
+        // Setel zona waktu menjadi 'Asia/Jakarta'
+        date_default_timezone_set('Asia/Jakarta');
+
+        // Konversi tanggal input ke objek DateTime
+        $date = \DateTime::createFromFormat('d F Y', $date_recorded);
+
+        // Cek apakah tanggal berhasil di-parse dan tidak melebihi tanggal hari ini
+        if ($date && $date <= new \DateTime('today')) {
+            // Konversi format tanggal ke Y-m-d
+            $this->$attribute = $date->format('Y-m-d');
+        } else {
+            // Tanggal tidak valid atau melebihi tanggal hari ini
+            $this->addError($attribute, 'Date recorded must be today or before today');
+        }
+    }
 }

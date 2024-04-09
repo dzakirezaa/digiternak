@@ -15,15 +15,16 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['eid', 'vid', 'name', 'birthdate', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
+            [['eid', 'vid', 'name', 'birthdate', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
+            [['cage_id'], 'required', 'message' => 'Please create a cage before adding livestock'],
+            [['birthdate'], 'required', 'message' => 'Please enter the birthdate of the livestock'],
             [['created_at', 'updated_at'], 'safe'],
-            [['eid', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
+            [['eid', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
             [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
-            [['vid', 'cage'], 'string', 'max' => 10],
+            [['vid'], 'string', 'max' => 10],
             [['eid', 'vid'], 'unique', 'message' => 'This {attribute} has already been taken'],
-            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'],
-            [['cage'], 'match', 'pattern' => '/^[A-Z]{3}\d{3}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by three digits'], 
+            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'], 
             [['is_deleted'], 'boolean'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid date format for {attribute}. Please use the YYYY-MM-DD format'],
             [['birthdate'], 'validateBirthdate'],
@@ -39,22 +40,19 @@ class Livestock extends ActiveRecord
             'vid' => 'Visual ID',
             'name' => 'Name',
             'birthdate' => 'Birthdate',
-            'type_of_livestock_id' => 'Type of Livestock ID',
-            'breed_of_livestock_id' => 'Breed of Livestock ID',
-            'maintenance_id' => 'Maintenance ID',
-            'source_id' => 'Source ID',
-            'ownership_status_id' => 'Ownership Status ID',
-            'reproduction_id' => 'Reproduction ID',
+            'cage_id' => 'Cage',
+            'type_of_livestock_id' => 'Type of Livestock',
+            'breed_of_livestock_id' => 'Breed of Livestock',
+            'maintenance_id' => 'Maintenance',
+            'source_id' => 'Source',
+            'ownership_status_id' => 'Ownership Status',
+            'reproduction_id' => 'Reproduction',
             'gender' => 'Gender',
             'age' => 'Age',
             'chest_size' => 'Chest Size',
             'body_weight' => 'Body Weight',
             'health' => 'Health',
-            // 'bcs_id' => 'BCS',
-            'cage' => 'Cage',
             'livestock_image' => 'Livestock Image',
-            'created_at' => 'Created At',
-            'updated_at' => 'Updated At',
         ];
     }
 
@@ -66,13 +64,13 @@ class Livestock extends ActiveRecord
             'eid',
             'vid',
             'name',
-            'cage',
             'birthdate',
             'gender',
             'age',
             'chest_size',
             'body_weight',
             'health',
+            'cage',
             'type_of_livestock',
             'breed_of_livestock',
             'maintenance',
@@ -80,6 +78,13 @@ class Livestock extends ActiveRecord
             'ownership_status',
             'reproduction',
         ];
+
+        $fields['cage'] = function ($model) {
+            return [
+                'id' => $model->cage_id,
+                'name' => $model->cage->name,
+            ];
+        };
 
         $fields['type_of_livestock'] = function ($model) {
             return [
@@ -147,7 +152,7 @@ class Livestock extends ActiveRecord
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
 
         if ($birthdate >= $today) {
-            $this->addError($attribute, 'Birthdate must be before today');
+            $this->addError($attribute, 'Birthdate must be today or before today');
         }
     }
 
@@ -203,9 +208,20 @@ class Livestock extends ActiveRecord
         return $this->hasOne(Person::class, ['id' => 'person_id']);
     }
 
-    // // Definisikan relasi dengan model BodyCountScore
-    // public function getBodyCountScore()
-    // {
-    //     return $this->hasOne(BodyCountScore::class, ['id' => 'bcs_id']);
-    // }
+    // Definisikan relasi dengan model Cage
+    public function getCage()
+    {
+        return $this->hasOne(Cage::class, ['id' => 'cage_id']);
+    }
+
+    public function toArray(array $fields = [], array $expand = [], $recursive = true)
+    {
+        $result = parent::toArray($fields, $expand, $recursive);
+        
+        if ($this === null) {
+            return [];
+        }
+
+        return $result;
+    }
 }
