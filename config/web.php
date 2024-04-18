@@ -7,7 +7,7 @@ $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
-    // 'defaultRoute' => 'web/index.php',
+    'defaultRoute' => 'site/index',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -15,8 +15,8 @@ $config = [
     'components' => [
         'request' => [
             'cookieValidationKey' => 'AsmXcRvr0JV5YEbMzsMuZ6yhpA0w7MqP',
+            'enableCsrfValidation' => YII_ENV_PROD,
             'parsers' => [
-                'enableCsrfValidation' => YII_ENV_PROD,
                 'application/json' => 'yii\web\JsonParser',
             ]
         ],
@@ -74,22 +74,24 @@ $config = [
                 'dashboard/dashboard/<userId:\d+>' => 'dashboard/dashboard',
             ],
         ],
-        'formatter' => [
-            'dateFormat' => 'Y-m-d',
-            'datetimeFormat' => 'Y-m-d H:i:s',
-            'timeFormat' => 'H:i:s',
-            'locale' => 'id_ID', 
-            'timeZone' => 'Asia/Jakarta',
-        ],        
+        // 'formatter' => [
+        //     'dateFormat' => 'Y-m-d',
+        //     'datetimeFormat' => 'Y-m-d H:i:s',
+        //     'timeFormat' => 'H:i:s',
+        //     'locale' => 'id_ID', 
+        //     'timeZone' => 'Asia/Jakarta',
+        // ],        
     ],
     'params' => $params,
 ];
 
 if (YII_ENV_DEV) {
     $config['bootstrap'][] = 'debug';
-    $config['modules']['debug'] = [
-        'class' => 'yii\debug\Module',
-    ];
+    if (class_exists('yii\debug\Module')) {
+        $config['modules']['debug'] = [
+            'class' => 'yii\debug\Module',
+        ];
+    }
 
     $config['bootstrap'][] = 'gii';
     $config['modules']['gii'] = [
