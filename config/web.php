@@ -20,10 +20,10 @@ $config = [
                 'application/json' => 'yii\web\JsonParser',
             ]
         ],
-        // 'response' => [
-        //     'format' => yii\web\Response::FORMAT_JSON,
-        //     'charset' => 'UTF-8',
-        // ],
+        'response' => [
+            'format' => yii\web\Response::FORMAT_JSON,
+            'charset' => 'UTF-8',
+        ],
         'cache' => [
             'class' => 'yii\caching\FileCache',
         ],
@@ -66,12 +66,14 @@ $config = [
                 'livestock/update/<id:\d+>' => 'livestock/update',
                 'livestock/delete/<id:\d+>' => 'livestock/delete',
                 'livestock/search/<vid:[^\/]+>' => 'livestock/search',
+                'livestock/get-livestocks/<user_id:\d+>' => 'livestock/get-livestocks',
                 'livestock/upload-image/<id:\d+>' => 'livestock/upload-image',
+                'note/create/<livestock_id:\d+>' => 'note/create',
                 'note/view/<id:\d+>' => 'note/view',
                 'note/update/<id:\d+>' => 'note/update',
                 'note/delete/<id:\d+>' => 'note/delete',
                 'note/upload-documentation/<id:\d+>' => 'note/upload-documentation',
-                'dashboard/dashboard/<userId:\d+>' => 'dashboard/dashboard',
+                'dashboard/user-overview/<userId:\d+>' => 'dashboard/user-overview',
             ],
         ],
         // 'formatter' => [

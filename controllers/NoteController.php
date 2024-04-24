@@ -75,13 +75,12 @@ class NoteController extends ActiveController
      * @throws BadRequestHttpException jika input tidak valid
      * @throws ServerErrorHttpException jika data Note tidak dapat disimpan
      */
-    public function actionCreate()
+    public function actionCreate($livestock_id)
     {
         $model = new Note();
 
-        // Ambil nilai livestock_vid dari nilai vid pada tabel Livestock
-        $livestock_vid = Yii::$app->getRequest()->getBodyParam('livestock_vid');
-        $livestock = Livestock::findOne(['vid' => $livestock_vid]);
+        // Find the livestock using the provided livestock_id
+        $livestock = Livestock::findOne($livestock_id);
 
         if (!$livestock) {
             return [
@@ -90,12 +89,8 @@ class NoteController extends ActiveController
             ];
         }
 
-        // Ambil person_id yang terkait dengan livestock
-        $person_id = $livestock->person_id;
-
-        // Pengecekan apakah person_id memiliki cage yang sesuai
-        $livestock_cage = Yii::$app->getRequest()->getBodyParam('livestock_cage');
-        $cage = Cage::findOne(['name' => $livestock_cage, 'person_id' => $person_id]);
+        // Find the cage associated with the livestock
+        $cage = Cage::findOne($livestock->cage_id);
 
         if (!$cage) {
             return [
@@ -104,32 +99,24 @@ class NoteController extends ActiveController
             ];
         }
 
-        // Ambil nilai tanggal dari input
-        $date_recorded_input = Yii::$app->getRequest()->getBodyParam('date_recorded');
-
-        // Konversi format tanggal ke format yang dapat diterima oleh MySQL
-        $date_recorded_mysql = date('Y-m-d', strtotime($date_recorded_input));
-
-        // Set nilai atribut-atribut Note
+        // Set the attributes of the Note
+        $model->livestock_id = $livestock->id;
         $model->livestock_vid = $livestock->vid;
-
-        // Set nilai atribut-atribut Cage
         $model->livestock_cage = $cage->name;
+        $model->location = $cage->location;
+        $model->date_recorded = date('Y-m-d'); // Set the date_recorded to today's date
 
-        // Set nilai atribut date_recorded dengan format yang sesuai
-        $model->date_recorded = $date_recorded_mysql;
-
-        // Set aturan validasi untuk date_recorded
-        $model->rules()[] = [['date_recorded'], 'compare', 'compareValue' => date('Y-m-d'), 'operator' => '<=', 'message' => '{attribute} must be today or before today'];
-
-        // Memuat data dari body permintaan ke model
-        if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->save()) {
-            Yii::$app->getResponse()->setStatusCode(201);
-            return [
-                'message' => 'Note created successfully',
-                'error' => false,
-                'data' => $model,
-            ];
+        // Load the data from the request body
+        if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->validate()) {
+            // Save the model
+            if ($model->save()) {
+                Yii::$app->getResponse()->setStatusCode(201);
+                return [
+                    'message' => 'Note created successfully',
+                    'error' => false,
+                    'data' => $model,
+                ];
+            } 
         } else {
             return [
                 'message' => 'Failed to create note',
@@ -151,48 +138,16 @@ class NoteController extends ActiveController
     {
         $model = $this->findModel($id);
 
-        // Ambil nilai livestock_vid dari nilai vid pada tabel Livestock
-        $livestock_vid = Yii::$app->getRequest()->getBodyParam('livestock_vid');
-        $livestock = Livestock::findOne(['vid' => $livestock_vid]);
+        // Load the data from the request body
+        $data = Yii::$app->getRequest()->getBodyParams();
 
-        if (!$livestock) {
-            return [
-                'message' => 'Livestock not found',
-                'error' => true,
-            ];
-        }
+        // Only allow updating of livestock_feed, costs, and details
+        $model->livestock_feed = $data['livestock_feed'] ?? $model->livestock_feed;
+        $model->costs = $data['costs'] ?? $model->costs;
+        $model->details = $data['details'] ?? $model->details;
 
-        // Ambil person_id yang terkait dengan livestock
-        $person_id = $livestock->person_id;
-
-        // Pengecekan apakah person_id memiliki cage yang sesuai
-        $livestock_cage = Yii::$app->getRequest()->getBodyParam('livestock_cage');
-        $cage = Cage::findOne(['name' => $livestock_cage, 'person_id' => $person_id]);
-
-        if (!$cage) {
-            return [
-                'message' => 'Cage not found',
-                'error' => true,
-            ];
-        }
-
-        // Ambil nilai tanggal dari input
-        $date_recorded_input = Yii::$app->getRequest()->getBodyParam('date_recorded');
-
-        // Konversi format tanggal ke format yang dapat diterima oleh MySQL
-        $date_recorded_mysql = date('Y-m-d', strtotime($date_recorded_input));
-
-        // Set nilai atribut-atribut Note
-        $model->livestock_vid = $livestock->vid;
-
-        // Set nilai atribut-atribut Cage
-        $model->livestock_cage = $cage->name;
-
-        // Set nilai atribut date_recorded dengan format yang sesuai
-        $model->date_recorded = $date_recorded_mysql;
-
-        // Memuat data dari body permintaan ke model
-        if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->save()) {
+        // Save the model
+        if ($model->validate() && $model->save()) {
             Yii::$app->getResponse()->setStatusCode(200);
             return [
                 'message' => 'Note updated successfully',
@@ -251,11 +206,11 @@ class NoteController extends ActiveController
         $imageFiles = UploadedFile::getInstancesByName('documentation');
 
         if (!empty($imageFiles)) {
-            // Ambil person_id dari pengguna yang sedang login
-            $personId = Yii::$app->user->identity->person_id;
+            // Ambil user_id dari pengguna yang sedang login
+            $userId = Yii::$app->user->identity->id;
 
-            // Buat path direktori berdasarkan person_id dan id Livestock
-            $uploadPath = 'uploads/notes/' . $personId . '/' . $model->id . '/';
+            // Buat path direktori berdasarkan user_id dan id Livestock
+            $uploadPath = 'uploads/notes/' . $userId . '/' . $model->id . '/';
 
             // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
             if (!is_dir($uploadPath)) {

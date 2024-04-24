@@ -92,16 +92,16 @@ class LivestockController extends ActiveController
         $requestData = Yii::$app->getRequest()->getBodyParams();
         $model->load($requestData, '');
 
-        // Validasi cage_id berdasarkan person_id
+        // Validasi cage_id berdasarkan user_id
         $cageId = $model->cage_id;
-        $personId = Yii::$app->user->identity->person_id;
+        $userId = Yii::$app->user->identity->id;
         $existingCage = Cage::find()
-            ->where(['id' => $cageId, 'person_id' => $personId])
+            ->where(['id' => $cageId, 'user_id' => $userId])
             ->exists();
 
         if (!$existingCage) {
             return [
-                'message' => 'Cage not found',
+                'message' => 'Cage not found, please create a cage before adding livestock',
                 'error' => true,
             ];
         }
@@ -134,6 +134,7 @@ class LivestockController extends ActiveController
     public function actionUpdate($id)
     {
         $model = $this->findModel($id);
+        $model->scenario = 'update';
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
@@ -206,6 +207,30 @@ class LivestockController extends ActiveController
     }
 
     /**
+     * Retrieves livestock data by user_id.
+     * @param integer $user_id
+     * @return mixed
+     */
+    public function actionGetLivestocks($user_id)
+    {
+        $livestocks = Livestock::find()->where(['user_id' => $user_id])->all();
+
+        if (!empty($livestocks)) {
+            return [
+                'message' => 'Livestock data found successfully',
+                'error' => false,
+                'data' => $livestocks,
+            ];
+        } else {
+            Yii::$app->getResponse()->setStatusCode(404); // Not Found
+            return [
+                'message' => 'Livestock data not found',
+                'error' => true,
+            ];
+        }
+    }
+
+    /**
      * Mengunggah gambar untuk Livestock berdasarkan ID.
      * @param integer $id
      * @return mixed
@@ -220,11 +245,11 @@ class LivestockController extends ActiveController
         $imageFiles = UploadedFile::getInstancesByName('livestock_image');
 
         if (!empty($imageFiles)) {
-            // Ambil person_id dari pengguna yang sedang login
-            $personId = Yii::$app->user->identity->person_id;
+            // Ambil user_id dari pengguna yang sedang login
+            $userId = Yii::$app->user->identity->id;
 
-            // Buat path direktori berdasarkan person_id dan id Livestock
-            $uploadPath = 'uploads/livestock/' . $personId . '/' . $model->id . '/';
+            // Buat path direktori berdasarkan user_id dan id Livestock
+            $uploadPath = 'uploads/livestock/' . $userId . '/' . $model->id . '/';
 
             // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
             if (!is_dir($uploadPath)) {

@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveRecord;
+use yii\helpers\ArrayHelper;
 
 class Livestock extends ActiveRecord
 {
@@ -15,17 +16,24 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['eid', 'vid', 'name', 'birthdate', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
-            [['cage_id'], 'required', 'message' => 'Please create a cage before adding livestock'],
+            [['name', 'birthdate', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
+            [['cage_id'], 'required', 'message' => 'Please select the cage of the livestock'],
+            [['type_of_livestock_id'], 'required', 'message' => 'Please select the type of livestock'],
+            [['breed_of_livestock_id'], 'required', 'message' => 'Please select the breed of livestock'],
+            [['maintenance_id'], 'required', 'message' => 'Please select the maintenance of the livestock'],
+            [['source_id'], 'required', 'message' => 'Please select the source of the livestock'],
+            [['ownership_status_id'], 'required', 'message' => 'Please select the ownership status of the livestock'],
+            [['reproduction_id'], 'required', 'message' => 'Please select the reproduction of the livestock'],
             [['birthdate'], 'required', 'message' => 'Please enter the birthdate of the livestock'],
-            [['created_at', 'updated_at'], 'safe'],
+            ['name', 'validateLivestockName'],
             [['eid', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
             [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
             [['vid'], 'string', 'max' => 10],
             [['eid', 'vid'], 'unique', 'message' => 'This {attribute} has already been taken'],
-            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'], 
-            [['is_deleted'], 'boolean'],
+            ['eid', 'string', 'length' => 32, 'message' => 'EID must be a 32-digit number'],
+            ['eid', 'match', 'pattern' => '/^\d{32}$/', 'message' => 'EID must be a 32-digit number'],
+            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}[0-9]{4}$/', 'message' => 'Visual ID must follow the pattern of three uppercase letters followed by four digits', 'on' => 'create'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid date format for {attribute}. Please use the YYYY-MM-DD format'],
             [['birthdate'], 'validateBirthdate'],
             [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Invalid file format or file size exceeded (maximum 5 MB)'],
@@ -60,7 +68,7 @@ class Livestock extends ActiveRecord
     {
         $fields = [
             'id',
-            'person_id',
+            'user_id',
             'eid',
             'vid',
             'name',
@@ -136,6 +144,12 @@ class Livestock extends ActiveRecord
             return $model->body_weight . ' kg';
         };
 
+        $fields['livestock_images'] = function ($model) {
+            return array_map(function ($livestockImage) {
+                return $livestockImage->image_path;
+            }, $model->livestockImages);
+        };
+
         return $fields;
     }
 
@@ -156,15 +170,66 @@ class Livestock extends ActiveRecord
         }
     }
 
+    public function beforeSave($insert)
+    {
+        if (parent::beforeSave($insert)) {
+            if ($this->isNewRecord) {
+                // $this->eid = $this->generateEid();
+                $this->vid = $this->generateVid();
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // private function generateEid()
+    // {
+    //     // Generate a random eid of 32 digits
+    //     $eid = sprintf('%032d', mt_rand(0, 99999999999999999999999999999999));
+    //     return $eid;
+    // }
+
+    private function generateVid()
+    {
+        // Generate 3 random uppercase letters
+        $letters = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 0, 3);
+
+        // Generate a 4 digit random number
+        $numbers = sprintf('%04d', mt_rand(0, 9999));
+
+        // Combine the letters and numbers to form the VID
+        $vid = $letters . $numbers;
+
+        return $vid;
+    }
+
     public function afterSave($insert, $changedAttributes)
     {
         parent::afterSave($insert, $changedAttributes);
 
-        // Ambil person_id dari user yang sedang login
-        $personId = Yii::$app->user->identity->person_id;
+        // Get user_id from the currently logged in user
+        $userId = Yii::$app->user->identity->id;
 
-        // Simpan person_id
-        $this->updateAttributes(['person_id' => $personId]);
+        // Save user_id
+        $this->updateAttributes(['user_id' => $userId]);
+    }
+
+    public function validateLivestockName($attribute, $params)
+    {
+        $userId = Yii::$app->user->identity->id;
+        $existingLivestock = Livestock::find()
+            ->where(['name' => $this->$attribute, 'user_id' => $userId])
+            ->one();
+
+        if ($existingLivestock) {
+            $this->addError($attribute, 'You have already created a livestock with this name.');
+        }
+    }
+
+    // Definisikan relasi dengan model LivestockImage
+    public function getLivestockImages()
+    {
+        return $this->hasMany(LivestockImage::class, ['livestock_id' => 'id']);
     }
 
     // Definisikan relasi dengan model TypeOfLivestock
@@ -203,9 +268,9 @@ class Livestock extends ActiveRecord
         return $this->hasOne(Reproduction::class, ['id' => 'reproduction_id']);
     }
 
-    public function getPerson()
+    public function getUser()
     {
-        return $this->hasOne(Person::class, ['id' => 'person_id']);
+        return $this->hasOne(User::class, ['id' => 'user_id']);
     }
 
     // Definisikan relasi dengan model Cage

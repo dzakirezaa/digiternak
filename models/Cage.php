@@ -18,7 +18,8 @@ class Cage extends ActiveRecord
             [['name', 'location'], 'required', 'message' => '{attribute} cannot be blank'],
             [['location'], 'string', 'max' => 255],
             [['name'], 'string', 'max' => 10],
-            ['person_id', 'integer'],
+            ['name', 'validateCageName'],
+            ['user_id', 'integer'],
             [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,10}$/', 'message' => '{attribute} must be between 3 and 10 characters long and may contain letters, numbers, and spaces only'],
             [['location'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} must be between 3 and 255 characters long and may contain letters, numbers, and spaces only'],
         ];
@@ -30,9 +31,11 @@ class Cage extends ActiveRecord
             'id',
             'name',
             'location',
-            // 'livestocks' => function ($model) {
-            //     return $model->livestocks;
-            // }
+            'livestocks' => function ($model) {
+                return array_map(function ($livestock) {
+                    return $livestock->id;
+                }, $model->livestocks);
+            }
         ];
     }
 
@@ -41,14 +44,36 @@ class Cage extends ActiveRecord
         return $this->hasMany(Livestock::class, ['cage_id' => 'id']);
     }
 
+    public function attributeLabels()
+    {
+        return [
+            'id' => 'ID',
+            'name' => 'Name',
+            'location' => 'Location',
+            'user_id' => 'User ID',
+        ];
+    }
+
+    public function validateCageName($attribute, $params)
+    {
+        $userId = Yii::$app->user->identity->id;
+        $existingCage = Cage::find()
+            ->where(['name' => $this->$attribute, 'user_id' => $userId])
+            ->one();
+
+        if ($existingCage) {
+            $this->addError($attribute, 'You have already created a cage with this name.');
+        }
+    }
+
     public function afterSave($insert, $changedAttributes)
     {
         parent::afterSave($insert, $changedAttributes);
 
-        // Ambil person_id dari user yang sedang login
-        $personId = Yii::$app->user->identity->person_id;
+        // Get user_id from the currently logged in user
+        $userId = Yii::$app->user->identity->id;
 
-        // Simpan person_id
-        $this->updateAttributes(['person_id' => $personId]);
+        // Save user_id
+        $this->updateAttributes(['user_id' => $userId]);
     }
 }

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 09, 2024 at 05:03 PM
+-- Generation Time: Apr 24, 2024 at 04:06 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -52,10 +52,12 @@ INSERT INTO `breed_of_livestock` (`id`, `name`, `is_deleted`, `updated_at`) VALU
 
 CREATE TABLE `cage` (
   `id` int(11) NOT NULL,
-  `person_id` int(11) DEFAULT NULL,
+  `user_id` int(11) DEFAULT NULL,
   `name` varchar(10) NOT NULL,
   `location` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
 
 --
 -- Table structure for table `gender`
@@ -85,8 +87,8 @@ INSERT INTO `gender` (`id`, `name`, `is_deleted`, `updated_at`) VALUES
 
 CREATE TABLE `livestock` (
   `id` int(11) NOT NULL,
-  `person_id` int(11) DEFAULT NULL,
-  `eid` bigint(11) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `eid` bigint(11) DEFAULT NULL,
   `vid` varchar(10) NOT NULL,
   `name` varchar(255) NOT NULL,
   `birthdate` date DEFAULT NULL,
@@ -117,8 +119,6 @@ CREATE TABLE `livestock_images` (
   `livestock_id` int(11) DEFAULT NULL,
   `image_path` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
 
 --
 -- Table structure for table `maintenance`
@@ -151,6 +151,14 @@ CREATE TABLE `migration` (
   `apply_time` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `migration`
+--
+
+INSERT INTO `migration` (`version`, `apply_time`) VALUES
+('m000000_000000_base', 1702795813);
+
+-- --------------------------------------------------------
 
 --
 -- Table structure for table `note`
@@ -158,13 +166,14 @@ CREATE TABLE `migration` (
 
 CREATE TABLE `note` (
   `id` int(11) NOT NULL,
+  `livestock_id` int(11) DEFAULT NULL,
   `livestock_vid` varchar(10) NOT NULL,
   `livestock_cage` varchar(10) NOT NULL,
   `date_recorded` date NOT NULL,
   `location` varchar(255) NOT NULL,
   `livestock_feed` varchar(255) NOT NULL,
-  `costs` varchar(255) NOT NULL,
-  `details` text DEFAULT NULL,
+  `costs` int(11) NOT NULL,
+  `details` text NOT NULL,
   `documentation` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -201,24 +210,6 @@ INSERT INTO `ownership_status` (`id`, `name`, `is_deleted`, `updated_at`) VALUES
 (3, 'Titipan', 0, '2023-12-17 06:50:57');
 
 -- --------------------------------------------------------
-
---
--- Table structure for table `person`
---
-
-CREATE TABLE `person` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `nik` varchar(255) NOT NULL,
-  `full_name` varchar(255) NOT NULL,
-  `birthdate` date DEFAULT NULL,
-  `phone_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `gender_id` int(11) DEFAULT NULL,
-  `address` varchar(255) NOT NULL,
-  `is_deleted` tinyint(4) DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Table structure for table `purpose`
@@ -333,11 +324,16 @@ INSERT INTO `type_of_livestock` (`id`, `name`, `is_deleted`, `updated_at`) VALUE
 
 CREATE TABLE `user` (
   `id` int(11) NOT NULL,
-  `person_id` int(11) DEFAULT NULL,
   `username` varchar(50) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
   `role_id` int(11) NOT NULL,
-  `auth_key` varchar(255) NOT NULL,
+  `gender_id` int(11) DEFAULT NULL,
+  `nik` varchar(255) DEFAULT NULL,
+  `full_name` varchar(255) DEFAULT NULL,
+  `birthdate` date DEFAULT NULL,
+  `phone_number` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `auth_key` varchar(255) DEFAULT NULL,
   `password_hash` varchar(255) NOT NULL,
   `password_reset_token` varchar(255) DEFAULT NULL,
   `verification_token` varchar(255) DEFAULT NULL,
@@ -378,7 +374,7 @@ ALTER TABLE `breed_of_livestock`
 --
 ALTER TABLE `cage`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_person_cage` (`person_id`);
+  ADD KEY `fk_user_cage` (`user_id`);
 
 --
 -- Indexes for table `gender`
@@ -396,11 +392,11 @@ ALTER TABLE `livestock`
   ADD KEY `fk_breed_of_livestock` (`breed_of_livestock_id`),
   ADD KEY `fk_maintenance` (`maintenance_id`),
   ADD KEY `fk_ownership_status` (`ownership_status_id`),
-  ADD KEY `fk_person_livestock` (`person_id`),
   ADD KEY `fk_reproduction` (`reproduction_id`),
   ADD KEY `fk_source` (`source_id`),
   ADD KEY `fk_type_of_livestock` (`type_of_livestock_id`),
-  ADD KEY `fk_cage_livestock` (`cage_id`);
+  ADD KEY `fk_cage_livestock` (`cage_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `livestock_images`
@@ -426,7 +422,8 @@ ALTER TABLE `migration`
 --
 ALTER TABLE `note`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_livestock_vid` (`livestock_vid`);
+  ADD KEY `fk_livestock_vid` (`livestock_vid`),
+  ADD KEY `livestock_id` (`livestock_id`);
 
 --
 -- Indexes for table `note_images`
@@ -440,14 +437,6 @@ ALTER TABLE `note_images`
 --
 ALTER TABLE `ownership_status`
   ADD PRIMARY KEY (`id`);
-
---
--- Indexes for table `person`
---
-ALTER TABLE `person`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_user_person` (`user_id`),
-  ADD KEY `nik` (`nik`) USING BTREE;
 
 --
 -- Indexes for table `purpose`
@@ -478,8 +467,7 @@ ALTER TABLE `type_of_livestock`
 --
 ALTER TABLE `user`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `fk_role_user` (`role_id`),
-  ADD KEY `fk_person_user` (`person_id`);
+  ADD KEY `fk_role_user` (`role_id`);
 
 --
 -- Indexes for table `user_role`
@@ -495,43 +483,37 @@ ALTER TABLE `user_role`
 -- AUTO_INCREMENT for table `cage`
 --
 ALTER TABLE `cage`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `livestock`
 --
 ALTER TABLE `livestock`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `livestock_images`
 --
 ALTER TABLE `livestock_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `note`
 --
 ALTER TABLE `note`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `note_images`
 --
 ALTER TABLE `note_images`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `person`
---
-ALTER TABLE `person`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -541,7 +523,7 @@ ALTER TABLE `user`
 -- Constraints for table `cage`
 --
 ALTER TABLE `cage`
-  ADD CONSTRAINT `fk_person_cage` FOREIGN KEY (`person_id`) REFERENCES `person` (`id`);
+  ADD CONSTRAINT `fk_user_cage` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 
 --
 -- Constraints for table `livestock`
@@ -551,10 +533,10 @@ ALTER TABLE `livestock`
   ADD CONSTRAINT `fk_cage_livestock` FOREIGN KEY (`cage_id`) REFERENCES `cage` (`id`),
   ADD CONSTRAINT `fk_maintenance` FOREIGN KEY (`maintenance_id`) REFERENCES `maintenance` (`id`),
   ADD CONSTRAINT `fk_ownership_status` FOREIGN KEY (`ownership_status_id`) REFERENCES `ownership_status` (`id`),
-  ADD CONSTRAINT `fk_person_livestock` FOREIGN KEY (`person_id`) REFERENCES `person` (`id`),
   ADD CONSTRAINT `fk_reproduction` FOREIGN KEY (`reproduction_id`) REFERENCES `reproduction` (`id`),
   ADD CONSTRAINT `fk_source` FOREIGN KEY (`source_id`) REFERENCES `source` (`id`),
-  ADD CONSTRAINT `fk_type_of_livestock` FOREIGN KEY (`type_of_livestock_id`) REFERENCES `type_of_livestock` (`id`);
+  ADD CONSTRAINT `fk_type_of_livestock` FOREIGN KEY (`type_of_livestock_id`) REFERENCES `type_of_livestock` (`id`),
+  ADD CONSTRAINT `fk_user_livestock` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
 
 --
 -- Constraints for table `livestock_images`
@@ -566,6 +548,7 @@ ALTER TABLE `livestock_images`
 -- Constraints for table `note`
 --
 ALTER TABLE `note`
+  ADD CONSTRAINT `fk_livestock_id` FOREIGN KEY (`livestock_id`) REFERENCES `livestock` (`id`),
   ADD CONSTRAINT `fk_livestock_vid` FOREIGN KEY (`livestock_vid`) REFERENCES `livestock` (`vid`);
 
 --
@@ -575,16 +558,9 @@ ALTER TABLE `note_images`
   ADD CONSTRAINT `fk_note_images` FOREIGN KEY (`note_id`) REFERENCES `note` (`id`);
 
 --
--- Constraints for table `person`
---
-ALTER TABLE `person`
-  ADD CONSTRAINT `fk_user_person` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `user`
 --
 ALTER TABLE `user`
-  ADD CONSTRAINT `fk_person_user` FOREIGN KEY (`person_id`) REFERENCES `person` (`id`),
   ADD CONSTRAINT `fk_role_user` FOREIGN KEY (`role_id`) REFERENCES `user_role` (`id`) ON DELETE CASCADE;
 COMMIT;
 

@@ -28,13 +28,13 @@ class DashboardController extends Controller
      * @param integer $userId
      * @return mixed
      */
-    public function actionDashboard($userId)
+    public function actionUserOverview($userId)
     {
         // Get jumlah kandang pada user tersebut
-        $totalCages = Cage::find()->where(['person_id' => $userId])->count();
+        $totalCages = Cage::find()->where(['user_id' => $userId])->count();
 
         // Get jumlah ternak pada user tersebut
-        $totalLivestocks = Livestock::find()->where(['person_id' => $userId])->count();
+        $totalLivestocks = Livestock::find()->where(['user_id' => $userId])->count();
 
         return [
             'total_cages' => $totalCages,

@@ -44,35 +44,21 @@ class UserController extends ActiveController
         $model->load(Yii::$app->request->getBodyParams(), '');
 
         if ($model->login()) {
-            // Jika login berhasil
+            // If login is successful
             $user = User::findByUsername($model->username);
 
-            // Cek apakah user telah mengisi data diri
-            if ($user->person_id === null) {
-                // Jika belum, beri tahu klien bahwa pengguna perlu mengisi data diri
-                Yii::$app->response->statusCode = 201; // Created
-                return [
-                    'message' => 'User logged in successfully',
-                    // 'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['person/create']),
-                    'error' => false,
-                    'data' => [
-                        'token' => $user->auth_key
-                    ]
-                ];
-            } else {
-                // Jika sudah, beri tahu klien bahwa pengguna berhasil login
-                Yii::$app->response->statusCode = 200; // OK
-                return [
-                    'message' => 'User logged in successfully',
-                    // 'redirect_url' => Yii::$app->urlManager->createAbsoluteUrl(['site/index']),
-                    'error' => false,
-                    'data' => [
-                        'token' => $user->auth_key
-                    ]
-                ];
-            }
+            // Inform the client that the user has logged in successfully
+            Yii::$app->response->statusCode = 200; // OK
+            return [
+                'message' => 'User logged in successfully',
+                'error' => false,
+                'data' => [
+                    'token' => $user->auth_key,
+                    'id' => $user->id,
+                ]
+            ];
         } else {
-            // Jika login gagal
+            // If login fails
             Yii::$app->response->statusCode = 401; // Unauthorized
             return [
                 'message' => 'Invalid username or password',
@@ -189,7 +175,13 @@ class UserController extends ActiveController
                 }
             }
 
-            $user->username = $model->username;
+            $user->username = $model->username ?? $user->username;
+            $user->nik = $model->nik ?? $user->nik;
+            $user->full_name = $model->full_name ?? $user->full_name;
+            $user->birthdate = $model->birthdate ?? $user->birthdate;
+            $user->phone_number = $model->phone_number ?? $user->phone_number;
+            $user->gender_id = $model->gender_id ?? $user->gender_id;
+            $user->address = $model->address ?? $user->address;
 
             if ($user instanceof User && $user->save(false)) {
                 $userRole = UserRole::findOne($user->role_id);

@@ -65,7 +65,7 @@ class User extends ActiveRecord implements IdentityInterface
     {
         return [
             ['username', 'required'],
-            [['person_id', 'status', 'role_id'], 'integer'],
+            [['status', 'role_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['email', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
             [['username'], 'string', 'max' => 50],
@@ -73,7 +73,6 @@ class User extends ActiveRecord implements IdentityInterface
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['role_id'], 'in', 'range' => array_keys(UserRole::roles())],
-            [['person_id'], 'exist', 'skipOnError' => true, 'targetClass' => Person::class, 'targetAttribute' => ['person_id' => 'id']],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
         ];
     }
@@ -288,16 +287,6 @@ class User extends ActiveRecord implements IdentityInterface
     public function removePasswordResetToken()
     {
         $this->password_reset_token = null;
-    }
-
-    /**
-     * Gets person associated with the user.
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getPerson()
-    {
-        return $this->hasOne(Person::class, ['id' => 'person_id']);
     }
 
     /**

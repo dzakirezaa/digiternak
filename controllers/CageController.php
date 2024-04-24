@@ -68,18 +68,21 @@ class CageController extends ActiveController
      */
     public function actionGetCages()
     {
-        // Mendapatkan id pengguna yang sedang login
-        $personId = Yii::$app->user->identity->person_id;
+        // Get the ID of the currently logged in user
+        $userId = Yii::$app->user->identity->id;
 
-        // Mengambil daftar kandang berdasarkan person_id
+        // Get the list of cages based on user_id
         $cages = Cage::find()
-            ->select(['name']) // Memilih hanya atribut 'name'
-            ->where(['person_id' => $personId])
-            ->asArray()
+            // ->select(['name'])
+            ->where(['user_id' => $userId])
+            // ->asArray()
             ->all();
 
-        // Mengembalikan daftar nama kandang dalam format JSON
-        return ArrayHelper::getColumn($cages, 'name');
+        // Return the list of cage names in JSON format
+        // return ArrayHelper::getColumn($cages, 'name');
+
+        // Return the list of cages in JSON format
+        return $cages;
     }
 
     /**
