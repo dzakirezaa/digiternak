@@ -17,7 +17,6 @@ class Livestock extends ActiveRecord
     {
         return [
             [['name', 'birthdate', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
-            [['cage_id'], 'required', 'message' => 'Please select the cage of the livestock'],
             [['type_of_livestock_id'], 'required', 'message' => 'Please select the type of livestock'],
             [['breed_of_livestock_id'], 'required', 'message' => 'Please select the breed of livestock'],
             [['maintenance_id'], 'required', 'message' => 'Please select the maintenance of the livestock'],
@@ -88,10 +87,14 @@ class Livestock extends ActiveRecord
         ];
 
         $fields['cage'] = function ($model) {
-            return [
-                'id' => $model->cage_id,
-                'name' => $model->cage->name,
-            ];
+            if ($model->cage !== null) {
+                return [
+                    'id' => $model->cage_id,
+                    'name' => $model->cage->name,
+                ];
+            } else {
+                return null;
+            }
         };
 
         $fields['type_of_livestock'] = function ($model) {

@@ -1,11 +1,11 @@
 <?php
-/** @var \yii\web\View $this view component instance */
-/** @var \app\models\User $user the user model */
 use yii\helpers\Html;
 
-$this->title = 'Reset Password';
+/** @var \yii\web\View $this view component instance */
+/** @var \yii\mail\MessageInterface $message the message being composed */
+/** @var string $content main view render result */
 
-$resetLink = Yii::$app->urlManager->createAbsoluteUrl(['user/request-password-reset', 'token' => $user->password_reset_token]);
+$user = $this->params['user']; // Retrieve the $user variable
 
 ?>
 <?php $this->beginPage() ?>
@@ -18,15 +18,7 @@ $resetLink = Yii::$app->urlManager->createAbsoluteUrl(['user/request-password-re
 </head>
 <body>
     <?php $this->beginBody() ?>
-    <div class="password-reset">
-        <p>Hello <?= Html::encode($user->username) ?>,</p>
-        <?php if (isset($resetLink)) : ?>
-            <p>Follow the link below to reset your password:</p>
-            <p><?= Html::a('Reset Password', $resetLink) ?></p>
-        <?php else : ?>
-            <p>We're sorry, but something went wrong. Please contact support for assistance.</p>
-        <?php endif; ?>
-    </div>
+    <?= $content ?>
     <?php $this->endBody() ?>
 </body>
 </html>

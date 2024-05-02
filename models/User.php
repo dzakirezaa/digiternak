@@ -25,6 +25,7 @@ use yii\base\NotSupportedException;
  * @property string $password write-only password
  * @property integer $person_id
  * @property integer $role_id
+ * @property boolean $is_deleted
  */
 
 class User extends ActiveRecord implements IdentityInterface
@@ -72,8 +73,9 @@ class User extends ActiveRecord implements IdentityInterface
             [['password_reset_token', 'email', 'username'], 'unique'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
-            [['role_id'], 'in', 'range' => array_keys(UserRole::roles())],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
+            ['is_completed', 'default', 'value' => 0],
+            ['is_completed', 'boolean'],
         ];
     }
 
@@ -93,30 +95,14 @@ class User extends ActiveRecord implements IdentityInterface
             ];
         };
 
+        $fields['is_completed'] = function () {
+            return $this->is_completed == 1 ? true : false;
+        };
+
         // Menghapus fields yang tidak perlu disertakan dalam response JSON
         unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status'], $fields['created_at'], $fields['updated_at'], $fields['role_id']);
 
         return $fields;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function beforeValidate()
-    {
-        if (parent::beforeValidate()) {
-            // Konversi role_id dari nama ke ID
-            $roleId = UserRole::find()->select('id')->where(['name' => $this->role_id])->scalar();
-            if ($roleId !== null) {
-                $this->role_id = $roleId;
-                return true;
-            } else {
-                // Tangani kasus di mana tidak ada peran yang cocok
-                $this->addError('role_id', 'Invalid role name.');
-                return false;
-            }
-        }
-        return false;
     }
 
     /**

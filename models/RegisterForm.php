@@ -32,7 +32,8 @@ class RegisterForm extends Model
             ['password', 'string', 'min' => 6],
             ['password_repeat', 'compare', 'compareAttribute' => 'password', 'message' => "Passwords don't match."],
             ['password', 'validatePasswordComplexity'],
-            ['role_id', 'in', 'range' => [1, 2, 3], 'message' => 'Invalid user role.'],
+            ['role_id', 'integer', 'message' => 'Role Id must be an integer.'],
+            ['role_id', 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
         ];
     }
 
@@ -78,26 +79,13 @@ class RegisterForm extends Model
             $user->role_id = $this->role_id;
             $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
             $user->status = User::STATUS_ACTIVE;
+            $user->verification_token = Yii::$app->security->generateRandomString();
 
             if ($user->save(false)) {
-                Yii::debug('User saved successfully', __METHOD__);
-                return [
-                    'user' => [
-                        'id' => $user->id,
-                        'username' => $user->username,
-                        'email' => $user->email,
-                        'role' => [
-                            'id' => $user->role_id,
-                            'name' => UserRole::findOne($user->role_id)->name,
-                        ],
-                    ],
-                ];
+                return $user;
             } else {
-                Yii::debug('Failed to save user: ' . print_r($user->errors, true), __METHOD__);
                 $this->addErrors($user->errors);
             }
-        } else {
-            Yii::debug('Validation failed: ' . print_r($this->errors, true), __METHOD__);
         }
 
         return null;

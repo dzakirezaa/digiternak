@@ -33,7 +33,7 @@ class EditProfileForm extends Model
             [['full_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Name must contain only letters and spaces.'],
             [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Invalid phone number format. Use 08xxxxxxxxxx format.'],
             [['gender_id'], 'integer'],
-            [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']]
+            [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']],
         ];
     }
 

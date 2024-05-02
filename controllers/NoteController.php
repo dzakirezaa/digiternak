@@ -181,12 +181,32 @@ class NoteController extends ActiveController
     }
 
     /**
-     * Mengembalikan semua data Note.
+     * Returns all notes created by the current user.
      * @return array
      */
     public function actionIndex()
     {
-        return Note::find()->all();
+        return Note::find()->where(['user_id' => Yii::$app->user->id])->all();
+    }
+
+    /**
+     * Get note data by livestock_id.
+     * @param integer $livestock_id
+     * @return mixed
+     * @throws NotFoundHttpException if the note data does not exist
+     */
+    public function actionGetNoteByLivestockId($livestock_id)
+    {
+        $notes = Note::find()->where(['livestock_id' => $livestock_id])->all();
+
+        if (!empty($notes)) {
+            return $notes;
+        } else {
+            return [
+                'message' => 'No notes found for the given Livestock Id.',
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -244,7 +264,7 @@ class NoteController extends ActiveController
                 'message' => 'Documentation uploaded successfully',
                 'error' => false,
                 'data' => [
-                    'livestock_images' => $uploadedImages,
+                    'note_images' => $uploadedImages,
                 ],
             ];
         } else {

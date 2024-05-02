@@ -147,7 +147,10 @@ class CageController extends ActiveController
 
         if ($cage->delete()) {
             Yii::$app->response->statusCode = 204;
-            return null;
+            return [
+                'message' => 'Cage deleted successfully',
+                'error' => false,
+            ];
         } else {
             Yii::$app->response->statusCode = 500;
             return [

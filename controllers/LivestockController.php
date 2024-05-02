@@ -95,15 +95,18 @@ class LivestockController extends ActiveController
         // Validasi cage_id berdasarkan user_id
         $cageId = $model->cage_id;
         $userId = Yii::$app->user->identity->id;
-        $existingCage = Cage::find()
-            ->where(['id' => $cageId, 'user_id' => $userId])
-            ->exists();
 
-        if (!$existingCage) {
-            return [
-                'message' => 'Cage not found, please create a cage before adding livestock',
-                'error' => true,
-            ];
+        if ($cageId !== null) {
+            $existingCage = Cage::find()
+                ->where(['id' => $cageId, 'user_id' => $userId])
+                ->exists();
+
+            if (!$existingCage) {
+                return [
+                    'message' => 'Cage not found, please create a cage before adding livestock',
+                    'error' => true,
+                ];
+            }
         }
 
         if ($model->save()) {

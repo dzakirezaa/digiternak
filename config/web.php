@@ -1,6 +1,9 @@
 <?php
 
-$params = require __DIR__ . '/params.php';
+$params = array_merge(
+    require __DIR__ . '/params.php',
+    // ['supportEmail' => 'digiternak@example.com']
+);
 $db = require __DIR__ . '/db.php';
 
 $config = [
@@ -37,7 +40,9 @@ $config = [
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@app/mail',
-            'useFileTransport' => true,
+            'transport' => [
+                'dsn' => 'smtp://digiternak@gmail.com:ltfs%20ducm%20mbaa%20siwj@smtp.gmail.com:587',
+            ],
         ],
         'log' => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
@@ -55,6 +60,7 @@ $config = [
             'showScriptName' => false,
             'rules' => [
                 'user/request-password-reset' => 'user/request-password-reset',
+                'user/verify-email/<token>' => 'user/verify-email',
                 'person/view/<id:\d+>' => 'person/view',
                 'person/update/<id:\d+>' => 'person/update',
                 'person/delete/<id:\d+>' => 'person/delete',
@@ -72,17 +78,11 @@ $config = [
                 'note/view/<id:\d+>' => 'note/view',
                 'note/update/<id:\d+>' => 'note/update',
                 'note/delete/<id:\d+>' => 'note/delete',
+                'note/livestock/<livestock_id:\d+>' => 'note/get-note-by-livestock-id',
                 'note/upload-documentation/<id:\d+>' => 'note/upload-documentation',
                 'dashboard/user-overview/<userId:\d+>' => 'dashboard/user-overview',
             ],
-        ],
-        // 'formatter' => [
-        //     'dateFormat' => 'Y-m-d',
-        //     'datetimeFormat' => 'Y-m-d H:i:s',
-        //     'timeFormat' => 'H:i:s',
-        //     'locale' => 'id_ID', 
-        //     'timeZone' => 'Asia/Jakarta',
-        // ],        
+        ],     
     ],
     'params' => $params,
 ];

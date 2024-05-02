@@ -17,11 +17,9 @@ class Note extends ActiveRecord
     {
         return [
             [['livestock_feed', 'costs', 'details'], 'required', 'message' => '{attribute} cannot be blank'],
-            [['livestock_id'], 'integer'],
             ['costs', 'validateCosts'],
             // [['date_recorded'], 'date', 'format' => 'php:d F Y', 'message' => 'Invalid date format for {attribute}. Please use the d F Y format'],
             // [['date_recorded'], 'validateDateFormat'],
-            [['livestock_vid'], 'string', 'max' => 10],
             // [['livestock_vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'],
             // [['livestock_cage'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,10}$/', 'message' => '{attribute} must be between 3 and 10 characters long and may contain letters, numbers, and spaces only'],
             [['location', 'livestock_feed', 'details'], 'string', 'max' => 255],
@@ -103,5 +101,16 @@ class Note extends ActiveRecord
     public function getNoteImages()
     {
         return $this->hasMany(NoteImage::class, ['note_id' => 'id']);
+    }
+
+    public function afterSave($insert, $changedAttributes)
+    {
+        parent::afterSave($insert, $changedAttributes);
+
+        // Get user_id from the currently logged in user
+        $userId = Yii::$app->user->identity->id;
+
+        // Save user_id
+        $this->updateAttributes(['user_id' => $userId]);
     }
 }
