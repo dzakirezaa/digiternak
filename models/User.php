@@ -7,7 +7,6 @@ use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 use yii\db\Expression;
 use yii\web\IdentityInterface;
-use yii\base\NotSupportedException;
 
 /**
  * User model
@@ -74,8 +73,8 @@ class User extends ActiveRecord implements IdentityInterface
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
             [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
-            ['is_completed', 'default', 'value' => 0],
-            ['is_completed', 'boolean'],
+            [['is_completed', 'is_verified'], 'default', 'value' => 0],
+            [['is_completed', 'is_verified'], 'boolean'],
         ];
     }
 
@@ -97,6 +96,10 @@ class User extends ActiveRecord implements IdentityInterface
 
         $fields['is_completed'] = function () {
             return $this->is_completed == 1 ? true : false;
+        };
+
+        $fields['is_verified'] = function () {
+            return $this->is_verified == 1 ? true : false;
         };
 
         // Menghapus fields yang tidak perlu disertakan dalam response JSON
@@ -230,7 +233,13 @@ class User extends ActiveRecord implements IdentityInterface
      */
     public function generateAuthKey()
     {
-        $this->auth_key = Yii::$app->security->generateRandomString();
+        $timestamp = time();
+        $userId = $this->id; // assuming the user model has an 'id' attribute
+        $username = $this->username; // assuming the user model has a 'username' attribute
+        $secretKey = Yii::$app->params['secretKey']; // a secret key defined in your application parameters
+
+        // Generate a token with the format 'hash(userId-username-timestamp-randomString-secretKey)'
+        $this->auth_key = hash('sha256', $userId . '-' . $username . '-' . $timestamp . '-' . Yii::$app->security->generateRandomString() . '-' . $secretKey);
     }
 
     /**

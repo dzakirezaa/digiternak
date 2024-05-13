@@ -4,7 +4,6 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveRecord;
-use yii\helpers\ArrayHelper;
 
 class Note extends ActiveRecord
 {
@@ -16,14 +15,13 @@ class Note extends ActiveRecord
     public function rules()
     {
         return [
-            [['livestock_feed', 'costs', 'details'], 'required', 'message' => '{attribute} cannot be blank'],
+            [['livestock_feed', 'costs', 'details'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
             ['costs', 'validateCosts'],
-            // [['date_recorded'], 'date', 'format' => 'php:d F Y', 'message' => 'Invalid date format for {attribute}. Please use the d F Y format'],
-            // [['date_recorded'], 'validateDateFormat'],
-            // [['livestock_vid'], 'match', 'pattern' => '/^[A-Z]{3}\d{4}$/', 'message' => '{attribute} must follow the pattern of three uppercase letters followed by four digits'],
-            // [['livestock_cage'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,10}$/', 'message' => '{attribute} must be between 3 and 10 characters long and may contain letters, numbers, and spaces only'],
+            [['livestock_name', 'livestock_id', 'livestock_vid', 'livestock_cage', 'location', 'date_recorded'], 'safe'],
+            [['livestock_feed'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            [['costs'], 'integer', 'min' => 0, 'message' => 'Biaya harus berupa angka bulat positif.'],
             [['location', 'livestock_feed', 'details'], 'string', 'max' => 255],
-            [['documentation'], 'file', 'skipOnEmpty' => true, 'maxFiles' => 10, 'extensions' => ['jpg', 'jpeg', 'png'] , 'maxSize' => 1024 * 1024 * 10, 'message' => 'Invalid file format or file size exceeded (maximum 10 MB)'],
+            [['documentation'], 'file', 'skipOnEmpty' => true, 'maxFiles' => 10, 'extensions' => ['jpg', 'jpeg', 'png'] , 'maxSize' => 1024 * 1024 * 10, 'message' => 'File tidak valid. File harus berformat jpg, jpeg, atau png dan berukuran maksimal 10MB.'],
         ];
     }
 
@@ -33,6 +31,7 @@ class Note extends ActiveRecord
             'id',
             'livestock_id',
             'livestock_vid',
+            'livestock_name',
             'livestock_cage',
             'date_recorded',
             'location',
@@ -55,13 +54,14 @@ class Note extends ActiveRecord
         return [
             'livestock_id' => 'Livestock ID',
             'livestock_vid' => 'Visual ID',
-            'livestock_cage' => 'Cage',
-            'date_recorded' => 'Date Recorded',
-            'location' => 'Location',
-            'livestock_feed' => 'Livestock Feed',
-            'costs' => 'Costs',
+            'livestock_name' => 'Nama Ternak',
+            'livestock_cage' => 'Kandang',
+            'date_recorded' => 'Tanggal Pencatatan',
+            'location' => 'Lokasi',
+            'livestock_feed' => 'Pakan Ternak',
+            'costs' => 'Biaya',
             'details' => 'Details',
-            'documentation' => 'Documentation',
+            'documentation' => 'Dokumentasi',
         ];
     }
 
@@ -70,32 +70,29 @@ class Note extends ActiveRecord
         $costs = Yii::$app->getRequest()->getBodyParams()['costs'];
 
         if (is_float($costs)) {
-            $this->addError($attribute, 'Costs must be an integer.');
+            $this->addError($attribute, 'Biaya harus berupa angka bulat positif.');
         } elseif (!preg_match('/^\d+$/', $this->$attribute)) {
-            $this->addError($attribute, 'Costs must be an integer.');
+            $this->addError($attribute, 'Biaya harus berupa angka bulat positif.');
         }
     }
 
-    public function validateDateFormat($attribute, $params)
-    {
-        // Ambil nilai tanggal dari atribut model
-        $date_recorded = $this->$attribute;
+    // public function validateDateFormat($attribute, $params)
+    // {
+    //     // Get the date from the model attribute
+    //     $date_recorded = $this->$attribute;
 
-        // Setel zona waktu menjadi 'Asia/Jakarta'
-        date_default_timezone_set('Asia/Jakarta');
+    //     // Convert the input date to a DateTime object
+    //     $date = \DateTime::createFromFormat('Y-m-d', $date_recorded);
 
-        // Konversi tanggal input ke objek DateTime
-        $date = \DateTime::createFromFormat('d F Y', $date_recorded);
-
-        // Cek apakah tanggal berhasil di-parse dan tidak melebihi tanggal hari ini
-        if ($date && $date <= new \DateTime('today')) {
-            // Konversi format tanggal ke Y-m-d
-            $this->$attribute = $date->format('Y-m-d');
-        } else {
-            // Tanggal tidak valid atau melebihi tanggal hari ini
-            $this->addError($attribute, 'Date recorded must be today or before today');
-        }
-    }
+    //     // Check if the date was successfully parsed and is not in the future
+    //     if ($date && $date <= new \DateTime('today')) {
+    //         // The date is valid and is today or in the past
+    //         $this->$attribute = $date->format('Y-m-d');
+    //     } else {
+    //         // The date is not valid or is in the future
+    //         $this->addError($attribute, 'Tanggal tidak valid. Pastikan tanggal yang dimasukkan adalah hari ini atau hari sebelumnya.');
+    //     }
+    // }
 
     // Definisikan relasi dengan model NoteImage
     public function getNoteImages()

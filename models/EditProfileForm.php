@@ -24,14 +24,13 @@ class EditProfileForm extends Model
         return [
             ['username', 'string', 'max' => 50],
             [['nik', 'phone_number'], 'string', 'max' => 16],
-            ['nik', 'unique', 'targetClass' => User::class, 'message' => 'NIK has already been taken'],
-            [['nik'], 'match', 'pattern' => '/^\d{16}$/', 'message' => 'NIK must be a string of 16 digits.'],
-            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid birthdate format. Use YYYY-MM-DD format.'],
+            ['nik', 'unique', 'targetClass' => User::class, 'message' => 'NIK sudah terdaftar'],
+            [['nik'], 'match', 'pattern' => '/^\d{16}$/', 'message' => 'NIK harus terdiri dari 16 digit.'],
+            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak sesuai. Gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
-            [['address'], 'string', 'max' => 255],
             [['full_name', 'address'], 'string', 'max' => 255],
-            [['full_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Name must contain only letters and spaces.'],
-            [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Invalid phone number format. Use 08xxxxxxxxxx format.'],
+            [['full_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Nama lengkap hanya boleh berisi huruf dan spasi.'],
+            [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Nomor telepon tidak valid. Gunakan format 08xxxxxxxxxx.'],
             [['gender_id'], 'integer'],
             [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']],
         ];
@@ -82,10 +81,11 @@ class EditProfileForm extends Model
     public function validateBirthdate($attribute, $params)
     {
         $today = new \DateTime();
+        $today->setTime(0, 0, 0);
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
 
-        if ($birthdate >= $today) {
-            $this->addError($attribute, 'Birthdate must be before today.');
+        if ($birthdate > $today) {
+            $this->addError($attribute, 'Tanggal lahir ternak tidak boleh lebih dari hari ini.');
         }
     }
 }

@@ -56,16 +56,27 @@ class NoteController extends ActiveController
      */
     public function actionView($id)
     {
-        return $this->findModel($id);
+        $model = $this->findModel($id);
+        if ($model !== null) {
+            return [
+                'message' => 'Berhasil menemukan catatan.',
+                'error' => false,
+                'data' => $model,
+            ];
+        } else {
+            return [
+                'message' => 'Catatan dengan ID tersebut tidak ditemukan.',
+                'error' => true,
+            ];
+        }
     }
 
     protected function findModel($id)
     {
-        $model = Note::findOne($id);
-        if ($model !== null) {
+        if (($model = Note::findOne($id)) !== null) {
             return $model;
         } else {
-            throw new NotFoundHttpException('The requested note does not exist.');
+            return null;
         }
     }
 
@@ -84,7 +95,7 @@ class NoteController extends ActiveController
 
         if (!$livestock) {
             return [
-                'message' => 'Livestock not found',
+                'message' => 'Data ternak tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -94,7 +105,7 @@ class NoteController extends ActiveController
 
         if (!$cage) {
             return [
-                'message' => 'Cage not found',
+                'message' => 'Kandang tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -102,9 +113,10 @@ class NoteController extends ActiveController
         // Set the attributes of the Note
         $model->livestock_id = $livestock->id;
         $model->livestock_vid = $livestock->vid;
+        $model->livestock_name = $livestock->name;
         $model->livestock_cage = $cage->name;
         $model->location = $cage->location;
-        $model->date_recorded = date('Y-m-d'); // Set the date_recorded to today's date
+        $model->date_recorded = date('Y-m-d');
 
         // Load the data from the request body
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->validate()) {
@@ -112,16 +124,22 @@ class NoteController extends ActiveController
             if ($model->save()) {
                 Yii::$app->getResponse()->setStatusCode(201);
                 return [
-                    'message' => 'Note created successfully',
+                    'message' => 'Catatan berhasil dibuat.',
                     'error' => false,
                     'data' => $model,
                 ];
             } 
         } else {
+            $errorDetails = [];
+            foreach ($model->errors as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
+            }
             return [
-                'message' => 'Failed to create note',
+                'message' => 'Catatan gagal dibuat.',
                 'error' => true,
-                'details' => $model->errors,
+                'details' => $errorDetails,
             ];
         }
     }
@@ -138,6 +156,14 @@ class NoteController extends ActiveController
     {
         $model = $this->findModel($id);
 
+        if ($model === null) {
+            Yii::$app->getResponse()->setStatusCode(404);
+            return [
+                'message' => 'Catatan tidak ditemukan.',
+                'error' => true,
+            ];
+        }
+
         // Load the data from the request body
         $data = Yii::$app->getRequest()->getBodyParams();
 
@@ -150,34 +176,65 @@ class NoteController extends ActiveController
         if ($model->validate() && $model->save()) {
             Yii::$app->getResponse()->setStatusCode(200);
             return [
-                'message' => 'Note updated successfully',
+                'message' => 'Catatan berhasil diperbarui.',
                 'error' => false,
                 'data' => $model,
             ];
         } else {
+            $errorDetails = [];
+            foreach ($model->errors as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
+            }
             return [
-                'message' => 'Failed to update note',
+                'message' => 'Gagal memperbarui catatan.',
                 'error' => true,
-                'details' => $model->errors,
+                'details' => $errorDetails,
             ];
         }
     }
 
     /**
-     * Menghapus data Note berdasarkan ID.
+     * Deletes a Note model based on its primary key value.
+     * If the deletion is successful, the browser will be redirected to the 'index' page.
      * @param integer $id
-     * @throws NotFoundHttpException jika data Note tidak ditemukan
-     * @throws ServerErrorHttpException jika data Note tidak dapat dihapus
+     * @throws NotFoundHttpException if the model cannot be found
+     * @throws ServerErrorHttpException if the model cannot be deleted
      */
     public function actionDelete($id)
     {
-        $model = $this->findModel($id);
-        $model->delete();
+        $transaction = Yii::$app->db->beginTransaction();
+        try {
+            $model = $this->findModel($id);
 
-        return [
-            'message' => 'Note deleted successfully.',
-            'error' => false,
-        ];
+            if ($model === null) {
+                return [
+                    'message' => 'Catatan tidak ditemukan.',
+                    'error' => true,
+                ];
+            }
+
+            // Delete note images first
+            NoteImage::deleteAll(['note_id' => $id]);
+
+            // Then delete the note
+            $model->delete();
+
+            $transaction->commit();
+
+            return [
+                'message' => 'Catatan berhasil dihapus.',
+                'error' => false,
+            ];
+        } catch (\Exception $e) {
+            $transaction->rollBack();
+
+            return [
+                'message' => 'Gagal menghapus catatan : ' . $e->getMessage(),
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -186,24 +243,40 @@ class NoteController extends ActiveController
      */
     public function actionIndex()
     {
-        return Note::find()->where(['user_id' => Yii::$app->user->id])->all();
+        $notes = Note::find()->where(['user_id' => Yii::$app->user->id])->all();
+
+        if (!empty($notes)) {
+            return [
+                'message' => 'Berhasil menemukan catatan.',
+                'error' => false,
+                'data' => $notes,
+            ];
+        } else {
+            return [
+                'message' => 'Tidak ada catatan yang ditemukan.',
+                'error' => true,
+            ];
+        }
     }
 
     /**
      * Get note data by livestock_id.
      * @param integer $livestock_id
      * @return mixed
-     * @throws NotFoundHttpException if the note data does not exist
      */
     public function actionGetNoteByLivestockId($livestock_id)
     {
         $notes = Note::find()->where(['livestock_id' => $livestock_id])->all();
 
         if (!empty($notes)) {
-            return $notes;
+            return [
+                'message' => 'Catatan berhasil ditemukan.',
+                'error' => false,
+                'data' => $notes,
+            ];
         } else {
             return [
-                'message' => 'No notes found for the given Livestock Id.',
+                'message' => 'Tidak ada catatan yang ditemukan.',
                 'error' => true,
             ];
         }
@@ -247,12 +320,15 @@ class NoteController extends ActiveController
                 // Simpan file ke direktori
                 $imageFile->saveAs($uploadPath . $imageName);
             
-                // Simpan informasi gambar ke dalam tabel livestock_images
+                // Simpan informasi gambar ke dalam tabel note_images
                 $noteImage = new NoteImage();
                 $noteImage->note_id = $model->id;
                 $noteImage->image_path = $uploadPath . $imageName;
                 if (!$noteImage->save()) {
-                    throw new ServerErrorHttpException('Failed to save the image to the database');
+                    return [
+                        'message' => 'Gagal menyimpan data gambar ke database.',
+                        'error' => true,
+                    ];
                 }
             
                 // Simpan nama file ke dalam array
@@ -261,7 +337,7 @@ class NoteController extends ActiveController
 
             // Jika penyimpanan model berhasil
             return [
-                'message' => 'Documentation uploaded successfully',
+                'message' => 'Gambar berhasil diunggah.',
                 'error' => false,
                 'data' => [
                     'note_images' => $uploadedImages,
@@ -269,7 +345,7 @@ class NoteController extends ActiveController
             ];
         } else {
             return [
-                'message' => 'No Documentation uploaded',
+                'message' => 'Tidak ada gambar yang diunggah.',
                 'error' => true,
             ];
         }

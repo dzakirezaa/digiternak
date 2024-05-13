@@ -6,11 +6,12 @@ use Yii;
 use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
 use yii\web\NotFoundHttpException;
-use yii\web\BadRequestHttpException;
 use yii\web\ServerErrorHttpException;
 use app\models\Livestock;
 use app\models\LivestockImage;
 use app\models\Cage;
+use app\models\Note;
+use app\models\NoteImage;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
 
@@ -60,7 +61,7 @@ class LivestockController extends ActiveController
         } else {
             Yii::$app->getResponse()->setStatusCode(404); // Not Found
             return [
-                'message' => 'Livestocks not found',
+                'message' => 'Ternak tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -74,11 +75,20 @@ class LivestockController extends ActiveController
      */
     public function actionView($id)
     {
-        return [
-            'message' => 'Livestock data found successfully',
-            'error' => false,
-            'data' => $this->findModel($id),
-        ];
+        $livestock = $this->findModel($id);
+
+        if ($livestock) {
+            return [
+                'message' => 'Data ternak berhasil ditemukan.',
+                'error' => false,
+                'data' => $livestock,
+            ];
+        } else {
+            return [
+                'message' => "Ternak dengan ID tersebut tidak ditemukan",
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -96,86 +106,120 @@ class LivestockController extends ActiveController
         $cageId = $model->cage_id;
         $userId = Yii::$app->user->identity->id;
 
-        if ($cageId !== null) {
-            $existingCage = Cage::find()
-                ->where(['id' => $cageId, 'user_id' => $userId])
-                ->exists();
-
-            if (!$existingCage) {
-                return [
-                    'message' => 'Cage not found, please create a cage before adding livestock',
-                    'error' => true,
-                ];
-            }
+        if ($cageId === null) {
+            return [
+                'message' => 'Kandang tidak boleh kosong, mohon buat kandang terlebih dahulu.',
+                'error' => true,
+            ];
+        }
+    
+        $existingCage = Cage::find()
+            ->where(['id' => $cageId, 'user_id' => $userId])
+            ->exists();
+    
+        if (!$existingCage) {
+            return [
+                'message' => 'Kandang tidak dapat ditemukan, mohon buat kandang sebelum menambahkan ternak.',
+                'error' => true,
+            ];
         }
 
         if ($model->save()) {
-            Yii::$app->getResponse()->setStatusCode(201);
+            Yii::$app->getResponse()->setStatusCode(200);
             return [
-                'message' => 'Livestock created successfully',
+                'message' => 'Data ternak berhasil dibuat.',
                 'error' => false,
                 'data' => $model
             ];
         } else {
-            Yii::$app->getResponse()->setStatusCode(422); // Unprocessable Entity
+            Yii::$app->getResponse()->setStatusCode(500); // Unprocessable Entity
+            $errorDetails = [];
+            foreach ($model->getErrors() as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
+            }
             return [
-                'message' => 'Failed to create Livestock',
+                'message' => 'Gagal membuat data ternak.',
                 'error' => true,
-                'details' => $model->getErrors(),
+                'details' => $errorDetails,
             ];
         }
     }
 
     /**
-     * Memperbarui data Livestock berdasarkan ID.
+     * Mengupdate data Livestock berdasarkan ID.
      * @param integer $id
      * @return mixed
      * @throws NotFoundHttpException jika data Livestock tidak ditemukan
-     * @throws BadRequestHttpException jika input tidak valid
-     * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
+     * @throws ServerErrorHttpException jika data Livestock tidak dapat diupdate
      */
     public function actionUpdate($id)
     {
         $model = $this->findModel($id);
-        $model->scenario = 'update';
+        $model->scenario = Livestock::SCENARIO_UPDATE;
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
 
         if ($model->save()) {
+            Yii::$app->response->statusCode = 200;
             return [
-                'message' => 'Livestock updated successfully',
+                'message' => 'Data ternak berhasil diperbarui.',
                 'error' => false,
                 'data' => $model,
             ];
-        } elseif (!$model->hasErrors()) {
-            throw new ServerErrorHttpException('Failed to update the object for unknown reason');
         } else {
-            $errors = [];
-            foreach ($model->getErrors() as $attribute => $error) {
-                $errors[$attribute] = $error[0];
+            Yii::$app->response->statusCode = 500;
+            $errorDetails = [];
+            foreach ($model->getErrors() as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
             }
             return [
-                'message' => 'Livestock failed to update',
+                'message' => 'Gagal memperbarui data ternak.',
                 'error' => true,
-                'details' => $errors,
+                'details' => $errorDetails,
             ];
         }
     }
 
     /**
-     * Menghapus data Livestock berdasarkan ID.
+     * Deletes a Livestock model based on its primary key value.
+     * If the deletion is successful, the browser will be redirected to the 'index' page.
      * @param integer $id
-     * @throws NotFoundHttpException jika data Livestock tidak ditemukan
-     * @throws ServerErrorHttpException jika data Livestock tidak dapat dihapus
+     * @throws NotFoundHttpException if the model cannot be found
      */
     public function actionDelete($id)
     {
-        $model = $this->findModel($id);
-        $model->delete();
+        $transaction = Yii::$app->db->beginTransaction();
+        try {
+            // Get all notes for the livestock
+            $notes = Note::find()->where(['livestock_id' => $id])->all();
 
-        return [
-            'message' => 'Livestock deleted successfully',
-            'error' => false,
-        ];
+            foreach ($notes as $note) {
+                // Delete the associated note images first
+                NoteImage::deleteAll(['note_id' => $note->id]);
+            }
+
+            // Then delete the notes
+            Note::deleteAll(['livestock_id' => $id]);
+
+            // Delete livestock images
+            LivestockImage::deleteAll(['livestock_id' => $id]);
+
+            // Then delete the livestock
+            $this->findModel($id)->delete();
+
+            $transaction->commit();
+
+            return [
+                'message' => 'Data ternak berhasil dihapus.',
+                'error' => false,
+            ];
+        } catch (\Exception $e) {
+            $transaction->rollBack();
+            throw new ServerErrorHttpException('Gagal menghapus data ternak. Alasan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -188,7 +232,7 @@ class LivestockController extends ActiveController
         // Validasi pola VID
         if (!preg_match('/^[A-Z]{3}\d{4}$/', $vid)) {
             return [
-                'message' => 'VID must follow the pattern of three uppercase letters followed by four digits',
+                'message' => 'Format Visual ID tidak valid. Gunakan format tiga huruf kapital diikuti empat angka. Contoh: ABC1234.',
                 'error' => true,
             ];
         }
@@ -197,13 +241,13 @@ class LivestockController extends ActiveController
 
         if ($livestock) {
             return [
-                'message' => 'Livestock data found successfully',
+                'message' => 'Data ternak berhasil ditemukan.',
                 'error' => false,
                 'data' => $livestock,
             ];
         } else {
             return [
-                'message' => 'Livestock data not found',
+                'message' => 'Data ternak tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -220,14 +264,14 @@ class LivestockController extends ActiveController
 
         if (!empty($livestocks)) {
             return [
-                'message' => 'Livestock data found successfully',
+                'message' => 'Data ternak berhasil ditemukan.',
                 'error' => false,
                 'data' => $livestocks,
             ];
         } else {
             Yii::$app->getResponse()->setStatusCode(404); // Not Found
             return [
-                'message' => 'Livestock data not found',
+                'message' => 'Data ternak tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -269,12 +313,15 @@ class LivestockController extends ActiveController
                 // Simpan file ke direktori
                 $imageFile->saveAs($uploadPath . $imageName);
             
-                // Simpan informasi gambar ke dalam tabel livestock_images
+                // Save image information to the livestock_images table
                 $livestockImage = new LivestockImage();
                 $livestockImage->livestock_id = $model->id;
                 $livestockImage->image_path = $uploadPath . $imageName;
                 if (!$livestockImage->save()) {
-                    throw new ServerErrorHttpException('Failed to save the image to the database');
+                    return [
+                        'message' => 'Gagal menyimpan data gambar ke database.',
+                        'error' => true,
+                    ];
                 }
             
                 // Simpan nama file ke dalam array
@@ -283,7 +330,7 @@ class LivestockController extends ActiveController
 
             // Jika penyimpanan model berhasil
             return [
-                'message' => 'Images uploaded successfully',
+                'message' => 'Gambar berhasil diunggah.',
                 'error' => false,
                 'data' => [
                     'livestock_images' => $uploadedImages,
@@ -291,7 +338,7 @@ class LivestockController extends ActiveController
             ];
         } else {
             return [
-                'message' => 'No images uploaded',
+                'message' => 'Tidak ada gambar yang diunggah.',
                 'error' => true,
             ];
         }
@@ -308,7 +355,7 @@ class LivestockController extends ActiveController
         if (($model = Livestock::findOne($id)) !== null) {
             return $model;
         } else {
-            throw new NotFoundHttpException('The requested object does not exist');
+            return null;
         }
     }
 }

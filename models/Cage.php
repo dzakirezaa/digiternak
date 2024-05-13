@@ -12,17 +12,29 @@ class Cage extends ActiveRecord
         return '{{%cage}}';
     }
 
+    const SCENARIO_CREATE = 'create';
+    const SCENARIO_UPDATE = 'update';
+
     public function rules()
     {
         return [
-            [['name', 'location'], 'required', 'message' => '{attribute} cannot be blank'],
-            [['location'], 'string', 'max' => 255],
-            [['name'], 'string', 'max' => 10],
+            [['name', 'location', 'description'], 'required', 'on' => self::SCENARIO_CREATE, 'message' => '{attribute} tidak boleh kosong.'],
+            [['name', 'location', 'description'], 'safe', 'on' => self::SCENARIO_UPDATE],
+            [['location', 'description'], 'string', 'max' => 255],
+            [['name'], 'string', 'max' => 30],
             ['name', 'validateCageName'],
             ['user_id', 'integer'],
-            [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,10}$/', 'message' => '{attribute} must be between 3 and 10 characters long and may contain letters, numbers, and spaces only'],
-            [['location'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} must be between 3 and 255 characters long and may contain letters, numbers, and spaces only'],
+            [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,30}$/', 'message' => 'Nama harus terdiri dari 3 sampai 30 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            [['location', 'description'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
         ];
+    }
+
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        $scenarios[self::SCENARIO_CREATE] = ['name', 'location', 'description', 'user_id'];
+        $scenarios[self::SCENARIO_UPDATE] = ['name', 'location', 'description'];
+        return $scenarios;
     }
 
     public function fields()
@@ -31,6 +43,7 @@ class Cage extends ActiveRecord
             'id',
             'name',
             'location',
+            'description',
             'livestocks' => function ($model) {
                 return array_map(function ($livestock) {
                     return $livestock->id;
@@ -48,21 +61,26 @@ class Cage extends ActiveRecord
     {
         return [
             'id' => 'ID',
-            'name' => 'Name',
-            'location' => 'Location',
+            'name' => 'Nama Kandang',
+            'location' => 'Lokasi Kandang',
+            'description' => 'Deskripsi Kandang',
             'user_id' => 'User ID',
         ];
     }
 
     public function validateCageName($attribute, $params)
     {
+        if (!$this->isNewRecord && !$this->isAttributeChanged($attribute)) {
+            return;
+        }
+
         $userId = Yii::$app->user->identity->id;
         $existingCage = Cage::find()
             ->where(['name' => $this->$attribute, 'user_id' => $userId])
             ->one();
 
         if ($existingCage) {
-            $this->addError($attribute, 'You have already created a cage with this name.');
+            $this->addError($attribute, 'Anda sudah memiliki kandang dengan nama yang sama. Silakan gunakan nama yang berbeda.');
         }
     }
 
@@ -70,10 +88,12 @@ class Cage extends ActiveRecord
     {
         parent::afterSave($insert, $changedAttributes);
 
-        // Get user_id from the currently logged in user
-        $userId = Yii::$app->user->identity->id;
+        if ($insert) {
+            // Get user_id from the currently logged in user
+            $userId = Yii::$app->user->identity->id;
 
-        // Save user_id
-        $this->updateAttributes(['user_id' => $userId]);
+            // Save user_id
+            $this->updateAttributes(['user_id' => $userId]);
+        }
     }
 }

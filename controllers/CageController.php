@@ -5,7 +5,6 @@ namespace app\controllers;
 use Yii;
 use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
-use yii\helpers\ArrayHelper;
 use app\models\Cage;
 
 class CageController extends ActiveController
@@ -59,7 +58,19 @@ class CageController extends ActiveController
     public function actionView($id)
     {
         $cage = Cage::findOne($id);
-        return $cage;
+
+        if ($cage) {
+            return [
+                'message' => 'Data kandang berhasil ditemukan',
+                'error' => false,
+                'data' => $cage,
+            ];
+        } else {
+            return [
+                'message' => "kandang dengan ID $id tidak ditemukan",
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -73,16 +84,23 @@ class CageController extends ActiveController
 
         // Get the list of cages based on user_id
         $cages = Cage::find()
-            // ->select(['name'])
             ->where(['user_id' => $userId])
-            // ->asArray()
             ->all();
 
-        // Return the list of cage names in JSON format
-        // return ArrayHelper::getColumn($cages, 'name');
-
-        // Return the list of cages in JSON format
-        return $cages;
+        if (!empty($cages)) {
+            // If the query was successful, return the list of cages, a success message, and an error status of false
+            return [
+                'message' => 'Berhasil mendapatkan daftar kandang',
+                'error' => false,
+                'data' => $cages,
+            ];
+        } else {
+            // If the query failed, return an error message, an error status of true, and no cages found message
+            return [
+                'message' => 'Tidak ada kandang yang ditemukan',
+                'error' => true,
+            ];
+        }
     }
 
     /**
@@ -92,20 +110,28 @@ class CageController extends ActiveController
     public function actionCreate()
     {
         $cage = new Cage();
+        $cage->scenario = Cage::SCENARIO_CREATE;
 
         $cage->load(Yii::$app->request->getBodyParams(), '');
+        $cage->user_id = Yii::$app->user->id;
         if ($cage->save()) {
             Yii::$app->response->statusCode = 201;
             return [
-                'message' => 'Cage created successfully',
+                'message' => 'Kandang berhasil dibuat',
                 'error' => false, 
             ];
         } else {
             Yii::$app->response->statusCode = 400;
+            $errorDetails = [];
+            foreach ($cage->errors as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
+            }
             return [
-                'message' => 'Failed to create cage', 
+                'message' => 'Gagal membuat kandang', 
                 'error' => true, 
-                'details' => $cage->errors
+                'details' => $errorDetails,
             ];
         }
     }
@@ -119,19 +145,27 @@ class CageController extends ActiveController
     {
         $cage = Cage::findOne($id);
 
+        $cage->scenario = Cage::SCENARIO_UPDATE;
+
         $cage->load(Yii::$app->request->getBodyParams(), '');
         if ($cage->save()) {
             Yii::$app->response->statusCode = 200;
             return [
-                'message' => 'Cage updated successfully',
+                'message' => 'Kandang berhasil diperbarui',
                 'error' => false, 
             ];
         } else {
             Yii::$app->response->statusCode = 400;
+            $errorDetails = [];
+            foreach ($cage->errors as $errors) {
+                foreach ($errors as $error) {
+                    $errorDetails[] = $error;
+                }
+            }
             return [
-                'message' => 'Failed to update cage',
+                'message' => 'Gagal memperbarui kandang',
                 'error' => true, 
-                'details' => $cage->errors,
+                'details' => $errorDetails,
             ];
         }
     }
@@ -148,13 +182,13 @@ class CageController extends ActiveController
         if ($cage->delete()) {
             Yii::$app->response->statusCode = 204;
             return [
-                'message' => 'Cage deleted successfully',
+                'message' => 'Kandang berhasil dihapus',
                 'error' => false,
             ];
         } else {
             Yii::$app->response->statusCode = 500;
             return [
-                'message' => 'Failed to delete cage',
+                'message' => 'Gagal menghapus kandang',
                 'error' => true, 
             ];
         }

@@ -16,26 +16,27 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['name', 'birthdate', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} cannot be blank'],
-            [['type_of_livestock_id'], 'required', 'message' => 'Please select the type of livestock'],
-            [['breed_of_livestock_id'], 'required', 'message' => 'Please select the breed of livestock'],
-            [['maintenance_id'], 'required', 'message' => 'Please select the maintenance of the livestock'],
-            [['source_id'], 'required', 'message' => 'Please select the source of the livestock'],
-            [['ownership_status_id'], 'required', 'message' => 'Please select the ownership status of the livestock'],
-            [['reproduction_id'], 'required', 'message' => 'Please select the reproduction of the livestock'],
-            [['birthdate'], 'required', 'message' => 'Please enter the birthdate of the livestock'],
+            [['name', 'birthdate', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
+            [['type_of_livestock_id'], 'required', 'message' => 'Pilih jenis ternak.'],
+            [['breed_of_livestock_id'], 'required', 'message' => 'Pilih ras ternak.'],
+            [['maintenance_id'], 'required', 'message' => 'Pilih pemeliharaan ternak.'],
+            [['source_id'], 'required', 'message' => 'Pilih sumber ternak.'],
+            [['ownership_status_id'], 'required', 'message' => 'Pilih status kepemilikan ternak.'],
+            [['reproduction_id'], 'required', 'message' => 'Pilih reproduksi ternak.'],
+            [['birthdate'], 'required', 'message' => 'Masukkan tanggal lahir ternak.'],
             ['name', 'validateLivestockName'],
             [['eid', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
             [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
             [['vid'], 'string', 'max' => 10],
-            [['eid', 'vid'], 'unique', 'message' => 'This {attribute} has already been taken'],
-            ['eid', 'string', 'length' => 32, 'message' => 'EID must be a 32-digit number'],
-            ['eid', 'match', 'pattern' => '/^\d{32}$/', 'message' => 'EID must be a 32-digit number'],
+            [['eid', 'vid'], 'unique', 'message' => '{attribute} sudah digunakan oleh ternak lain.'],
+            [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => 'Nama harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            ['eid', 'string', 'length' => 32],
+            ['eid', 'match', 'pattern' => '/^\d{32}$/', 'message' => 'EID harus terdiri dari 32 digit.'],
             [['vid'], 'match', 'pattern' => '/^[A-Z]{3}[0-9]{4}$/', 'message' => 'Visual ID must follow the pattern of three uppercase letters followed by four digits', 'on' => 'create'],
-            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Invalid date format for {attribute}. Please use the YYYY-MM-DD format'],
+            [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak valid. Tolong gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
-            [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Invalid file format or file size exceeded (maximum 5 MB)'],
+            [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Format file tidak valid atau ukuran file terlalu besar (maksimal 5 MB).'],
         ];
     }
 
@@ -45,21 +46,21 @@ class Livestock extends ActiveRecord
             'id' => 'ID',
             'eid' => 'EID',
             'vid' => 'Visual ID',
-            'name' => 'Name',
-            'birthdate' => 'Birthdate',
-            'cage_id' => 'Cage',
-            'type_of_livestock_id' => 'Type of Livestock',
-            'breed_of_livestock_id' => 'Breed of Livestock',
-            'maintenance_id' => 'Maintenance',
-            'source_id' => 'Source',
-            'ownership_status_id' => 'Ownership Status',
-            'reproduction_id' => 'Reproduction',
-            'gender' => 'Gender',
-            'age' => 'Age',
-            'chest_size' => 'Chest Size',
-            'body_weight' => 'Body Weight',
-            'health' => 'Health',
-            'livestock_image' => 'Livestock Image',
+            'name' => 'Nama',
+            'birthdate' => 'Tanggal Lahir',
+            'cage_id' => 'Kandang',
+            'type_of_livestock_id' => 'Jenis Ternak',
+            'breed_of_livestock_id' => 'Ras Ternak',
+            'maintenance_id' => 'Pemeliharaan',
+            'source_id' => 'Sumber Ternak',
+            'ownership_status_id' => 'Status Kepemilikan',
+            'reproduction_id' => 'Status Reproduksi',
+            'gender' => 'Jenis Kelamin',
+            'age' => 'Usia',
+            'chest_size' => 'Ukuran Dada',
+            'body_weight' => 'Berat Badan',
+            'health' => 'Kesehatan',
+            'livestock_image' => 'Foto Ternak',
         ];
     }
 
@@ -87,14 +88,10 @@ class Livestock extends ActiveRecord
         ];
 
         $fields['cage'] = function ($model) {
-            if ($model->cage !== null) {
-                return [
-                    'id' => $model->cage_id,
-                    'name' => $model->cage->name,
-                ];
-            } else {
-                return null;
-            }
+            return [
+                'id' => $model->cage_id,
+                'name' => $model->cage->name,
+            ];
         };
 
         $fields['type_of_livestock'] = function ($model) {
@@ -165,11 +162,13 @@ class Livestock extends ActiveRecord
 
     public function validateBirthdate($attribute, $params)
     {
-        $today = new \DateTime();
+        $timezone = new \DateTimeZone('Asia/Jakarta');
+        $today = new \DateTime('now', $timezone);
+        $today->setTime(0, 0, 0);
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
 
-        if ($birthdate >= $today) {
-            $this->addError($attribute, 'Birthdate must be today or before today');
+        if ($birthdate > $today) {
+            $this->addError($attribute, 'Tanggal lahir ternak tidak boleh lebih dari hari ini.');
         }
     }
 
@@ -225,7 +224,7 @@ class Livestock extends ActiveRecord
             ->one();
 
         if ($existingLivestock) {
-            $this->addError($attribute, 'You have already created a livestock with this name.');
+            $this->addError($attribute, 'Anda sudah memiliki ternak dengan nama yang sama. Silakan gunakan nama yang berbeda.');
         }
     }
 
@@ -291,5 +290,14 @@ class Livestock extends ActiveRecord
         }
 
         return $result;
+    }
+
+    const SCENARIO_UPDATE = 'update';
+
+    public function scenarios()
+    {
+        $scenarios = parent::scenarios();
+        $scenarios[self::SCENARIO_UPDATE] = ['name', 'birthdate', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'];
+        return $scenarios;
     }
 }

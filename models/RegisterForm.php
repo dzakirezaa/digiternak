@@ -27,12 +27,12 @@ class RegisterForm extends Model
             [['username'], 'string', 'max' => 255],
             [['email'], 'string', 'max' => 255],
             ['email', 'email'],
-            ['email', 'unique', 'targetClass' => User::class, 'message' => 'This email address has already been taken.'],
-            ['username', 'unique', 'targetClass' => User::class, 'message' => 'This username has already been taken.'],
+            ['email', 'unique', 'targetClass' => User::class, 'message' => 'Email sudah digunakan oleh pengguna lain.'],
+            ['username', 'unique', 'targetClass' => User::class, 'message' => 'Username sudah digunakan oleh pengguna lain.'],
             ['password', 'string', 'min' => 6],
-            ['password_repeat', 'compare', 'compareAttribute' => 'password', 'message' => "Passwords don't match."],
+            ['password_repeat', 'compare', 'compareAttribute' => 'password', 'message' => "Password tidak cocok."],
             ['password', 'validatePasswordComplexity'],
-            ['role_id', 'integer', 'message' => 'Role Id must be an integer.'],
+            ['role_id', 'integer', 'message' => 'Role ID harus berupa angka.'],
             ['role_id', 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
         ];
     }
@@ -61,7 +61,7 @@ class RegisterForm extends Model
     public function validatePasswordComplexity($attribute, $params)
     {
         if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/', $this->$attribute)) {
-            $this->addError($attribute, 'Password must contain at least one uppercase letter, one lowercase letter, and one digit.');
+            $this->addError($attribute, 'Password harus mengandung setidaknya satu huruf besar, satu huruf kecil, dan satu angka.');
         }
     }
 
@@ -79,7 +79,7 @@ class RegisterForm extends Model
             $user->role_id = $this->role_id;
             $user->password_hash = Yii::$app->security->generatePasswordHash($this->password);
             $user->status = User::STATUS_ACTIVE;
-            $user->verification_token = Yii::$app->security->generateRandomString();
+            // $user->verification_token = Yii::$app->security->generateRandomString();
 
             if ($user->save(false)) {
                 return $user;

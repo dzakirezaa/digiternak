@@ -1,9 +1,11 @@
 <?php
 
-$params = array_merge(
-    require __DIR__ . '/params.php',
-    // ['supportEmail' => 'digiternak@example.com']
-);
+require __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+$dotenv->load();
+
+$params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
 $config = [
@@ -41,7 +43,8 @@ $config = [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@app/mail',
             'transport' => [
-                'dsn' => 'smtp://digiternak@gmail.com:ltfs%20ducm%20mbaa%20siwj@smtp.gmail.com:587',
+                'class' => 'Symfony\Component\Mailer\Transport',
+                'dsn' => getenv('MAILGUN_DSN'),
             ],
         ],
         'log' => [
@@ -61,6 +64,7 @@ $config = [
             'rules' => [
                 'user/request-password-reset' => 'user/request-password-reset',
                 'user/verify-email/<token>' => 'user/verify-email',
+                'user/verify-user/<username>' => 'user/verify-user',
                 'person/view/<id:\d+>' => 'person/view',
                 'person/update/<id:\d+>' => 'person/update',
                 'person/delete/<id:\d+>' => 'person/delete',

@@ -43,12 +43,12 @@ class LoginForm extends Model
     public function validatePassword($attribute, $params)
     {
         if ($this->password === '') {
-            $this->addError($attribute, '{attribute} cannot be blank.');
+            $this->addError($attribute, '{attribute} tidak boleh kosong.');
         } elseif (!$this->hasErrors()) {
             $user = $this->getUser();
 
             if (!$user || !$user->validatePassword($this->password)) {
-                $this->addError($attribute, 'Invalid username or password. Please try again.');
+                $this->addError($attribute, 'Username atau password salah. Silakan coba lagi.');
             }
         }
     }

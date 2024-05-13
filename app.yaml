@@ -28,8 +28,9 @@ automatic_scaling:
 
 env_variables:
   GOOGLE_STORAGE_BUCKET: digiternak1
-  CLOUDSQL_CONNECTION_NAME: 34.27.91.110
+  CLOUDSQL_PUBLIC_IP: 34.27.91.110
   CLOUDSQL_USER: digiternak
   CLOUDSQL_PASSWORD: digiternak123
   CLOUDSQL_DATABASE_NAME: digiternak
   COOKIE_VALIDATION_KEY: AsmXcRvr0JV5YEbMzsMuZ6yhpA0w7MqP
+  MAILER_DSN: smtp://digiternak@gmail.com:ltfs%20ducm%20mbaa%20siwj@smtp.gmail.com:587
