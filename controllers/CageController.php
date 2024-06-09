@@ -6,6 +6,7 @@ use Yii;
 use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
 use app\models\Cage;
+use yii\web\MethodNotAllowedHttpException;
 
 class CageController extends ActiveController
 {
@@ -60,14 +61,16 @@ class CageController extends ActiveController
         $cage = Cage::findOne($id);
 
         if ($cage) {
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Data kandang berhasil ditemukan',
                 'error' => false,
                 'data' => $cage,
             ];
         } else {
+            Yii::$app->response->statusCode = 404;
             return [
-                'message' => "kandang dengan ID $id tidak ditemukan",
+                'message' => "Kandang tidak ditemukan",
                 'error' => true,
             ];
         }
@@ -89,6 +92,7 @@ class CageController extends ActiveController
 
         if (!empty($cages)) {
             // If the query was successful, return the list of cages, a success message, and an error status of false
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Berhasil mendapatkan daftar kandang',
                 'error' => false,
@@ -96,6 +100,7 @@ class CageController extends ActiveController
             ];
         } else {
             // If the query failed, return an error message, an error status of true, and no cages found message
+            Yii::$app->response->statusCode = 404;
             return [
                 'message' => 'Tidak ada kandang yang ditemukan',
                 'error' => true,
@@ -118,20 +123,15 @@ class CageController extends ActiveController
             Yii::$app->response->statusCode = 201;
             return [
                 'message' => 'Kandang berhasil dibuat',
-                'error' => false, 
+                'error' => false,
+                'data' => $cage,
             ];
         } else {
             Yii::$app->response->statusCode = 400;
-            $errorDetails = [];
-            foreach ($cage->errors as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
             return [
                 'message' => 'Gagal membuat kandang', 
                 'error' => true, 
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($cage),
             ];
         }
     }
@@ -156,16 +156,10 @@ class CageController extends ActiveController
             ];
         } else {
             Yii::$app->response->statusCode = 400;
-            $errorDetails = [];
-            foreach ($cage->errors as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
             return [
                 'message' => 'Gagal memperbarui kandang',
                 'error' => true, 
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($cage),
             ];
         }
     }
@@ -177,20 +171,62 @@ class CageController extends ActiveController
      */
     public function actionDelete($id)
     {
+        if (!ctype_digit($id)) {
+            Yii::$app->response->statusCode = 400;
+            return [
+                'message' => 'Invalid ID',
+                'error' => true,
+            ];
+        }
+
         $cage = Cage::findOne($id);
 
-        if ($cage->delete()) {
-            Yii::$app->response->statusCode = 204;
+        if ($cage && $cage->delete()) {
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Kandang berhasil dihapus',
                 'error' => false,
             ];
         } else {
-            Yii::$app->response->statusCode = 500;
+            Yii::$app->response->statusCode = 400;
             return [
                 'message' => 'Gagal menghapus kandang',
-                'error' => true, 
+                'error' => true,
             ];
         }
+    }
+
+    public function getValidationErrors($model)
+    {
+        $errorDetails = [];
+        foreach ($model->errors as $errors) {
+            foreach ($errors as $error) {
+                $errorDetails[] = $error;
+            }
+        }
+        return $errorDetails;
+    }
+
+    public function actionHandleRequest($id = null)
+    {
+        $request = Yii::$app->request;
+
+        if ($request->isGet) {
+            return $id ? $this->actionView($id) : $this->actionGetCages();
+        }
+
+        if ($request->isPost) {
+            return $this->actionCreate();
+        }
+
+        if ($request->isPut || $request->isPatch) {
+            return $this->actionUpdate($id);
+        }
+
+        if ($request->isDelete) {
+            return $this->actionDelete($id);
+        }
+
+        throw new MethodNotAllowedHttpException('Method not allowed.');
     }
 }

@@ -11,9 +11,8 @@ class EditProfileForm extends Model
     public $full_name;
     public $birthdate;
     public $phone_number;
-    public $gender_id;
+    public $gender;
     public $address;
-    public $is_deleted;
     public $user_id;
 
     /**
@@ -23,16 +22,15 @@ class EditProfileForm extends Model
     {
         return [
             ['username', 'string', 'max' => 50],
-            [['nik', 'phone_number'], 'string', 'max' => 16],
+            ['phone_number', 'string', 'max' => 16],
+            ['nik', 'string', 'max' => 16, 'message' => 'NIK harus terdiri dari 16 digit.'],
             ['nik', 'unique', 'targetClass' => User::class, 'message' => 'NIK sudah terdaftar'],
             [['nik'], 'match', 'pattern' => '/^\d{16}$/', 'message' => 'NIK harus terdiri dari 16 digit.'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak sesuai. Gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
-            [['full_name', 'address'], 'string', 'max' => 255],
+            [['full_name', 'address', 'gender'], 'string', 'max' => 255],
             [['full_name'], 'match', 'pattern' => '/^[a-zA-Z\s]+$/', 'message' => 'Nama lengkap hanya boleh berisi huruf dan spasi.'],
             [['phone_number'], 'match', 'pattern' => '/^08\d{1,15}$/', 'message' => 'Nomor telepon tidak valid. Gunakan format 08xxxxxxxxxx.'],
-            [['gender_id'], 'integer'],
-            [['gender_id'], 'exist', 'skipOnError' => true, 'targetClass' => Gender::class, 'targetAttribute' => ['gender_id' => 'id']],
         ];
     }
 
@@ -47,7 +45,7 @@ class EditProfileForm extends Model
             'full_name' => 'Full Name',
             'birthdate' => 'Birthdate',
             'phone_number' => 'Phone Number',
-            'gender_id' => 'Gender',
+            'gender' => 'Gender',
             'address' => 'Address',
         ];
     }
@@ -64,7 +62,7 @@ class EditProfileForm extends Model
             'full_name' => $this->full_name,
             'birthdate' => $this->birthdate,
             'phone_number' => $this->phone_number,
-            'gender_id' => $this->gender_id,
+            'gender' => $this->gender,
             'address' => $this->address,
         ]);
 
@@ -83,9 +81,12 @@ class EditProfileForm extends Model
         $today = new \DateTime();
         $today->setTime(0, 0, 0);
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
-
-        if ($birthdate > $today) {
-            $this->addError($attribute, 'Tanggal lahir ternak tidak boleh lebih dari hari ini.');
+    
+        $tomorrow = clone $today;
+        $tomorrow->modify('+1 day');
+    
+        if ($birthdate >= $tomorrow) {
+            $this->addError($attribute, 'Tanggal lahir tidak boleh lebih dari hari ini.');
         }
     }
 }

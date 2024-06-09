@@ -14,6 +14,7 @@ use app\models\Livestock;
 use app\models\Cage;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
+use Google\Cloud\Storage\StorageClient;
 
 class NoteController extends ActiveController
 {
@@ -58,14 +59,16 @@ class NoteController extends ActiveController
     {
         $model = $this->findModel($id);
         if ($model !== null) {
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Berhasil menemukan catatan.',
                 'error' => false,
                 'data' => $model,
             ];
         } else {
+            Yii::$app->response->statusCode = 404;
             return [
-                'message' => 'Catatan dengan ID tersebut tidak ditemukan.',
+                'message' => 'Catatan tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -94,8 +97,9 @@ class NoteController extends ActiveController
         $livestock = Livestock::findOne($livestock_id);
 
         if (!$livestock) {
+            Yii::$app->response->statusCode = 400;
             return [
-                'message' => 'Data ternak tidak ditemukan.',
+                'message' => 'Gagal membuat catatan, data ternak tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -104,8 +108,9 @@ class NoteController extends ActiveController
         $cage = Cage::findOne($livestock->cage_id);
 
         if (!$cage) {
+            Yii::$app->response->statusCode = 400;
             return [
-                'message' => 'Kandang tidak ditemukan.',
+                'message' => 'Gagal membuat catatan, kandang tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -116,7 +121,7 @@ class NoteController extends ActiveController
         $model->livestock_name = $livestock->name;
         $model->livestock_cage = $cage->name;
         $model->location = $cage->location;
-        $model->date_recorded = date('Y-m-d');
+        // $model->date_recorded = date('Y-m-d H:i:s'); // Updated to include time
 
         // Load the data from the request body
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->validate()) {
@@ -130,16 +135,11 @@ class NoteController extends ActiveController
                 ];
             } 
         } else {
-            $errorDetails = [];
-            foreach ($model->errors as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
+            Yii::$app->response->statusCode = 400;
             return [
                 'message' => 'Catatan gagal dibuat.',
                 'error' => true,
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($model),
             ];
         }
     }
@@ -169,6 +169,9 @@ class NoteController extends ActiveController
 
         // Only allow updating of livestock_feed, costs, and details
         $model->livestock_feed = $data['livestock_feed'] ?? $model->livestock_feed;
+        $model->feed_weight = $data['feed_weight'] ?? $model->feed_weight;
+        $model->vitamin = $data['vitamin'] ?? $model->vitamin;
+        $model->date_recorded = $data['date_recorded'] ?? $model->date_recorded;
         $model->costs = $data['costs'] ?? $model->costs;
         $model->details = $data['details'] ?? $model->details;
 
@@ -181,16 +184,11 @@ class NoteController extends ActiveController
                 'data' => $model,
             ];
         } else {
-            $errorDetails = [];
-            foreach ($model->errors as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
+            Yii::$app->getResponse()->setStatusCode(400);
             return [
                 'message' => 'Gagal memperbarui catatan.',
                 'error' => true,
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($model),
             ];
         }
     }
@@ -209,8 +207,9 @@ class NoteController extends ActiveController
             $model = $this->findModel($id);
 
             if ($model === null) {
+                Yii::$app->response->statusCode = 400;
                 return [
-                    'message' => 'Catatan tidak ditemukan.',
+                    'message' => 'Gagal menghapus catatan, catatan tidak ditemukan.',
                     'error' => true,
                 ];
             }
@@ -223,6 +222,7 @@ class NoteController extends ActiveController
 
             $transaction->commit();
 
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Catatan berhasil dihapus.',
                 'error' => false,
@@ -230,6 +230,7 @@ class NoteController extends ActiveController
         } catch (\Exception $e) {
             $transaction->rollBack();
 
+            Yii::$app->response->statusCode = 500;
             return [
                 'message' => 'Gagal menghapus catatan : ' . $e->getMessage(),
                 'error' => true,
@@ -246,14 +247,16 @@ class NoteController extends ActiveController
         $notes = Note::find()->where(['user_id' => Yii::$app->user->id])->all();
 
         if (!empty($notes)) {
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Berhasil menemukan catatan.',
                 'error' => false,
                 'data' => $notes,
             ];
         } else {
+            Yii::$app->response->statusCode = 404;
             return [
-                'message' => 'Tidak ada catatan yang ditemukan.',
+                'message' => 'Catatan tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -269,14 +272,16 @@ class NoteController extends ActiveController
         $notes = Note::find()->where(['livestock_id' => $livestock_id])->all();
 
         if (!empty($notes)) {
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Catatan berhasil ditemukan.',
                 'error' => false,
                 'data' => $notes,
             ];
         } else {
+            Yii::$app->response->statusCode = 404;
             return [
-                'message' => 'Tidak ada catatan yang ditemukan.',
+                'message' => 'Catatan tidak ditemukan.',
                 'error' => true,
             ];
         }
@@ -302,8 +307,8 @@ class NoteController extends ActiveController
             // Ambil user_id dari pengguna yang sedang login
             $userId = Yii::$app->user->identity->id;
 
-            // Buat path direktori berdasarkan user_id dan id Livestock
-            $uploadPath = 'uploads/notes/' . $userId . '/' . $model->id . '/';
+            // Buat path direktori berdasarkan user_id dan id Note
+            $uploadPath = 'notes/' . $userId . '/' . $model->livestock_id . '/' . $model->id . '/';
 
             // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
             if (!is_dir($uploadPath)) {
@@ -312,42 +317,90 @@ class NoteController extends ActiveController
 
             $uploadedImages = [];
 
-            // Iterasi melalui setiap file yang diunggah
+            // Initialize the Google Cloud Storage client
+            $storage = new StorageClient([
+                'keyFilePath' => Yii::getAlias('@app/config/sa.json')
+            ]);
+            $bucket = $storage->bucket('digiternak1');
+
+            // Iterate through each uploaded file
             foreach ($imageFiles as $index => $imageFile) {
-                // Generate nama file yang unik
+                // Generate a unique file name
                 $imageName = Yii::$app->security->generateRandomString(12) . $index . '.' . $imageFile->getExtension();
             
-                // Simpan file ke direktori
-                $imageFile->saveAs($uploadPath . $imageName);
+                // Save the file to the directory
+                $object = $bucket->upload(
+                    file_get_contents($imageFile->tempName),
+                    ['name' => $uploadPath . $imageName]
+                );
+
+                // Make the object publicly accessible
+                $object->update(['acl' => []], ['predefinedAcl' => 'publicRead']);
             
-                // Simpan informasi gambar ke dalam tabel note_images
+                // Get the public URL of the object
+                $publicUrl = sprintf('https://storage.googleapis.com/%s/%s', $bucket->name(), $uploadPath . $imageName);
+
+                // Save the image information to the note_images table
                 $noteImage = new NoteImage();
                 $noteImage->note_id = $model->id;
                 $noteImage->image_path = $uploadPath . $imageName;
                 if (!$noteImage->save()) {
+                    Yii::$app->response->statusCode = 400;
                     return [
                         'message' => 'Gagal menyimpan data gambar ke database.',
                         'error' => true,
                     ];
                 }
             
-                // Simpan nama file ke dalam array
-                $uploadedImages[] = $uploadPath . $imageName;
+                // Save the public URL to the array
+                $uploadedImages[] = $publicUrl;
             }
 
-            // Jika penyimpanan model berhasil
+            // If the model saving is successful
+            Yii::$app->response->statusCode = 201;
             return [
                 'message' => 'Gambar berhasil diunggah.',
                 'error' => false,
                 'data' => [
-                    'note_images' => $uploadedImages,
+                    'livestock_images' => $uploadedImages,
                 ],
             ];
         } else {
+            Yii::$app->response->statusCode = 400;
             return [
                 'message' => 'Tidak ada gambar yang diunggah.',
                 'error' => true,
             ];
         }
+    }
+
+    public function getValidationErrors($model)
+    {
+        $errorDetails = [];
+        foreach ($model->errors as $errors) {
+            foreach ($errors as $error) {
+                $errorDetails[] = $error;
+            }
+        }
+        return $errorDetails;
+    }
+
+    public function actionHandleRequest($id = null)
+    {
+        $request = Yii::$app->request;
+
+        if ($request->isGet) {
+            return $id ? $this->actionView($id) : $this->actionIndex();
+        }
+
+        if ($request->isPut || $request->isPatch) {
+            return $this->actionUpdate($id);
+        }
+
+        if ($request->isDelete) {
+            return $this->actionDelete($id);
+        }
+
+        throw new \yii\web\MethodNotAllowedHttpException('Method not allowed.');
     }
 }

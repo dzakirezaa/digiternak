@@ -14,6 +14,8 @@ use app\models\Note;
 use app\models\NoteImage;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
+use Google\Cloud\Storage\StorageClient;
+use Google\Cloud\Storage\Acl;
 
 class LivestockController extends ActiveController
 {
@@ -49,49 +51,6 @@ class LivestockController extends ActiveController
     }
 
     /**
-     * Mengembalikan semua data Livestock.
-     * @return array
-     */
-    public function actionIndex()
-    {
-        $livestocks = Livestock::find()->all();
-        
-        if (!empty($livestocks)) {
-            return $livestocks;
-        } else {
-            Yii::$app->getResponse()->setStatusCode(404); // Not Found
-            return [
-                'message' => 'Ternak tidak ditemukan.',
-                'error' => true,
-            ];
-        }
-    }
-
-    /**
-     * Menampilkan data Livestock berdasarkan ID.
-     * @param integer $id
-     * @return mixed
-     * @throws NotFoundHttpException jika data Livestock tidak ditemukan
-     */
-    public function actionView($id)
-    {
-        $livestock = $this->findModel($id);
-
-        if ($livestock) {
-            return [
-                'message' => 'Data ternak berhasil ditemukan.',
-                'error' => false,
-                'data' => $livestock,
-            ];
-        } else {
-            return [
-                'message' => "Ternak dengan ID tersebut tidak ditemukan",
-                'error' => true,
-            ];
-        }
-    }
-
-    /**
      * Membuat data Livestock baru.
      * @return mixed
      * @throws ServerErrorHttpException jika data Livestock tidak dapat disimpan
@@ -107,6 +66,7 @@ class LivestockController extends ActiveController
         $userId = Yii::$app->user->identity->id;
 
         if ($cageId === null) {
+            Yii::$app->getResponse()->setStatusCode(400); // Bad Request
             return [
                 'message' => 'Kandang tidak boleh kosong, mohon buat kandang terlebih dahulu.',
                 'error' => true,
@@ -118,31 +78,26 @@ class LivestockController extends ActiveController
             ->exists();
     
         if (!$existingCage) {
+            Yii::$app->getResponse()->setStatusCode(400); // Bad Request
             return [
-                'message' => 'Kandang tidak dapat ditemukan, mohon buat kandang sebelum menambahkan ternak.',
+                'message' => 'Kandang tidak ditemukan, mohon buat kandang sebelum menambahkan ternak.',
                 'error' => true,
             ];
         }
 
         if ($model->save()) {
-            Yii::$app->getResponse()->setStatusCode(200);
+            Yii::$app->getResponse()->setStatusCode(201);
             return [
                 'message' => 'Data ternak berhasil dibuat.',
                 'error' => false,
                 'data' => $model
             ];
         } else {
-            Yii::$app->getResponse()->setStatusCode(500); // Unprocessable Entity
-            $errorDetails = [];
-            foreach ($model->getErrors() as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
+            Yii::$app->getResponse()->setStatusCode(400);
             return [
                 'message' => 'Gagal membuat data ternak.',
                 'error' => true,
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($model),
             ];
         }
     }
@@ -168,17 +123,37 @@ class LivestockController extends ActiveController
                 'data' => $model,
             ];
         } else {
-            Yii::$app->response->statusCode = 500;
-            $errorDetails = [];
-            foreach ($model->getErrors() as $errors) {
-                foreach ($errors as $error) {
-                    $errorDetails[] = $error;
-                }
-            }
+            Yii::$app->response->statusCode = 400;
             return [
                 'message' => 'Gagal memperbarui data ternak.',
                 'error' => true,
-                'details' => $errorDetails,
+                'details' => $this->getValidationErrors($model),
+            ];
+        }
+    }
+
+    /**
+     * Menampilkan data Livestock berdasarkan ID.
+     * @param integer $id
+     * @return mixed
+     * @throws NotFoundHttpException jika data Livestock tidak ditemukan
+     */
+    public function actionView($id)
+    {
+        $livestock = $this->findModel($id);
+
+        if ($livestock) {
+            Yii::$app->response->statusCode = 200;
+            return [
+                'message' => 'Data ternak berhasil ditemukan.',
+                'error' => false,
+                'data' => $livestock,
+            ];
+        } else {
+            Yii::$app->response->statusCode = 404;
+            return [
+                'message' => "Ternak tidak ditemukan",
+                'error' => true,
             ];
         }
     }
@@ -193,6 +168,18 @@ class LivestockController extends ActiveController
     {
         $transaction = Yii::$app->db->beginTransaction();
         try {
+            // Get the livestock
+            $livestock = $this->findModel($id);
+
+            // Check if the livestock exists
+            if ($livestock === null) {
+                Yii::$app->response->statusCode = 400;
+                return [
+                    'message' => 'Gagal menghapus data ternak. Data ternak tidak ditemukan.',
+                    'error' => true,
+                ];
+            }
+
             // Get all notes for the livestock
             $notes = Note::find()->where(['livestock_id' => $id])->all();
 
@@ -208,10 +195,11 @@ class LivestockController extends ActiveController
             LivestockImage::deleteAll(['livestock_id' => $id]);
 
             // Then delete the livestock
-            $this->findModel($id)->delete();
+            $livestock->delete();
 
             $transaction->commit();
 
+            Yii::$app->response->statusCode = 200;
             return [
                 'message' => 'Data ternak berhasil dihapus.',
                 'error' => false,
@@ -237,15 +225,18 @@ class LivestockController extends ActiveController
             ];
         }
 
-        $livestock = Livestock::find()->where(['vid' => $vid])->all();
+        $userId = Yii::$app->user->identity->id;
+        $livestock = Livestock::find()->where(['vid' => $vid, 'user_id' => $userId])->all();
 
         if ($livestock) {
+            Yii::$app->getResponse()->setStatusCode(200); // OK
             return [
                 'message' => 'Data ternak berhasil ditemukan.',
                 'error' => false,
                 'data' => $livestock,
             ];
         } else {
+            Yii::$app->getResponse()->setStatusCode(404); // Not Found
             return [
                 'message' => 'Data ternak tidak ditemukan.',
                 'error' => true,
@@ -263,6 +254,7 @@ class LivestockController extends ActiveController
         $livestocks = Livestock::find()->where(['user_id' => $user_id])->all();
 
         if (!empty($livestocks)) {
+            Yii::$app->getResponse()->setStatusCode(200); // OK
             return [
                 'message' => 'Data ternak berhasil ditemukan.',
                 'error' => false,
@@ -285,50 +277,62 @@ class LivestockController extends ActiveController
      */
     public function actionUploadImage($id)
     {
-        // Temukan model Livestock berdasarkan ID
+        // Find the Livestock model based on ID
         $model = $this->findModel($id);
 
-        // Ambil gambar dari request
+        // Get the image from the request
         $imageFiles = UploadedFile::getInstancesByName('livestock_image');
 
         if (!empty($imageFiles)) {
-            // Ambil user_id dari pengguna yang sedang login
+            // Get the user_id of the currently logged in user
             $userId = Yii::$app->user->identity->id;
 
-            // Buat path direktori berdasarkan user_id dan id Livestock
-            $uploadPath = 'uploads/livestock/' . $userId . '/' . $model->id . '/';
-
-            // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
-            if (!is_dir($uploadPath)) {
-                FileHelper::createDirectory($uploadPath);
-            }
+            // Create a directory path based on user_id and Livestock id
+            $uploadPath = 'livestock/' . $userId . '/' . $model->id . '/';
 
             $uploadedImages = [];
 
-            // Iterasi melalui setiap file yang diunggah
+            // Initialize the Google Cloud Storage client
+            $storage = new StorageClient([
+                'keyFilePath' => Yii::getAlias('@app/config/sa.json')
+            ]);
+            $bucket = $storage->bucket('digiternak1');
+
+            // Iterate through each uploaded file
             foreach ($imageFiles as $index => $imageFile) {
-                // Generate nama file yang unik
+                // Generate a unique file name
                 $imageName = Yii::$app->security->generateRandomString(12) . $index . '.' . $imageFile->getExtension();
             
-                // Simpan file ke direktori
-                $imageFile->saveAs($uploadPath . $imageName);
+                // Save the file to the directory
+                $object = $bucket->upload(
+                    file_get_contents($imageFile->tempName),
+                    ['name' => $uploadPath . $imageName]
+                );
+
+                // Make the object publicly accessible
+                $object->update(['acl' => []], ['predefinedAcl' => 'publicRead']);
             
-                // Save image information to the livestock_images table
+                // Get the public URL of the object
+                $publicUrl = sprintf('https://storage.googleapis.com/%s/%s', $bucket->name(), $uploadPath . $imageName);
+
+                // Save the image information to the livestock_images table
                 $livestockImage = new LivestockImage();
                 $livestockImage->livestock_id = $model->id;
                 $livestockImage->image_path = $uploadPath . $imageName;
                 if (!$livestockImage->save()) {
+                    Yii::$app->response->statusCode = 400;
                     return [
                         'message' => 'Gagal menyimpan data gambar ke database.',
                         'error' => true,
                     ];
                 }
             
-                // Simpan nama file ke dalam array
-                $uploadedImages[] = $uploadPath . $imageName;
+                // Save the public URL to the array
+                $uploadedImages[] = $publicUrl;
             }
 
-            // Jika penyimpanan model berhasil
+            // If the model saving is successful
+            Yii::$app->response->statusCode = 201;
             return [
                 'message' => 'Gambar berhasil diunggah.',
                 'error' => false,
@@ -337,6 +341,7 @@ class LivestockController extends ActiveController
                 ],
             ];
         } else {
+            Yii::$app->response->statusCode = 400;
             return [
                 'message' => 'Tidak ada gambar yang diunggah.',
                 'error' => true,
@@ -358,4 +363,122 @@ class LivestockController extends ActiveController
             return null;
         }
     }
+
+    public function getValidationErrors($model)
+    {
+        $errorDetails = [];
+        foreach ($model->errors as $errors) {
+            foreach ($errors as $error) {
+                $errorDetails[] = $error;
+            }
+        }
+        return $errorDetails;
+    }
+
+    public function actionHandleRequest($id = null)
+    {
+        $request = Yii::$app->request;
+
+        if ($request->isGet) {
+            return $this->actionView($id);
+        }
+
+        if ($request->isPost) {
+            return $this->actionCreate();
+        }
+
+        if ($request->isPut || $request->isPatch) {
+            return $this->actionUpdate($id);
+        }
+
+        if ($request->isDelete) {
+            return $this->actionDelete($id);
+        }
+
+        throw new \yii\web\MethodNotAllowedHttpException('Method not allowed.');
+    }
 }
+
+// public function actionUploadImage($id)
+    // {
+    //     // Temukan model Livestock berdasarkan ID
+    //     $model = $this->findModel($id);
+
+    //     // Ambil gambar dari request
+    //     $imageFiles = UploadedFile::getInstancesByName('livestock_image');
+
+    //     if (!empty($imageFiles)) {
+    //         // Ambil user_id dari pengguna yang sedang login
+    //         $userId = Yii::$app->user->identity->id;
+
+    //         // Buat path direktori berdasarkan user_id dan id Livestock
+    //         $uploadPath = 'uploads/livestock/' . $userId . '/' . $model->id . '/';
+
+    //         // Periksa apakah direktori sudah ada, jika tidak, buat direktori baru
+    //         if (!is_dir($uploadPath)) {
+    //             FileHelper::createDirectory($uploadPath);
+    //         }
+
+    //         $uploadedImages = [];
+
+    //         // Iterasi melalui setiap file yang diunggah
+    //         foreach ($imageFiles as $index => $imageFile) {
+    //             // Generate nama file yang unik
+    //             $imageName = Yii::$app->security->generateRandomString(12) . $index . '.' . $imageFile->getExtension();
+            
+    //             // Simpan file ke direktori
+    //             $imageFile->saveAs($uploadPath . $imageName);
+            
+    //             // Save image information to the livestock_images table
+    //             $livestockImage = new LivestockImage();
+    //             $livestockImage->livestock_id = $model->id;
+    //             $livestockImage->image_path = $uploadPath . $imageName;
+    //             if (!$livestockImage->save()) {
+    //                 Yii::$app->response->statusCode = 400;
+    //                 return [
+    //                     'message' => 'Gagal menyimpan data gambar ke database.',
+    //                     'error' => true,
+    //                 ];
+    //             }
+            
+    //             // Simpan nama file ke dalam array
+    //             $uploadedImages[] = $uploadPath . $imageName;
+    //         }
+
+    //         // Jika penyimpanan model berhasil
+    //         Yii::$app->response->statusCode = 201;
+    //         return [
+    //             'message' => 'Gambar berhasil diunggah.',
+    //             'error' => false,
+    //             'data' => [
+    //                 'livestock_images' => $uploadedImages,
+    //             ],
+    //         ];
+    //     } else {
+    //         Yii::$app->response->statusCode = 400;
+    //         return [
+    //             'message' => 'Tidak ada gambar yang diunggah.',
+    //             'error' => true,
+    //         ];
+    //     }
+    // }
+
+    /**
+     * Mengembalikan semua data Livestock.
+     * @return array
+     */
+    // public function actionIndex()
+    // {
+    //     $livestocks = Livestock::find()->all();
+        
+    //     if (!empty($livestocks)) {
+    //         Yii::$app->response->statusCode = 200;
+    //         return $livestocks;
+    //     } else {
+    //         Yii::$app->getResponse()->setStatusCode(404); // Not Found
+    //         return [
+    //             'message' => 'Ternak tidak ditemukan.',
+    //             'error' => true,
+    //         ];
+    //     }
+    // }

@@ -53,7 +53,7 @@ class User extends ActiveRecord implements IdentityInterface
                     ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
                     ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
                 ],
-                'value' => new Expression('NOW()'),
+                'value' => date('Y-m-d H:i:s'),
             ],
         ];
     }
@@ -65,16 +65,15 @@ class User extends ActiveRecord implements IdentityInterface
     {
         return [
             ['username', 'required'],
-            [['status', 'role_id'], 'integer'],
-            [['created_at', 'updated_at'], 'safe'],
-            [['email', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token'], 'string', 'max' => 255],
+            [['status', 'is_completed'], 'integer'],
+            [['created_at', 'updated_at', 'birthdate'], 'safe'],
+            [['email', 'auth_key', 'password_hash', 'password_reset_token', 'verification_token', 'gender', 'nik', 'full_name', 'phone_number', 'address'], 'string', 'max' => 255],
             [['username'], 'string', 'max' => 50],
-            [['password_reset_token', 'email', 'username'], 'unique'],
+            [['password_reset_token', 'email', 'username', 'nik'], 'unique'],
             ['status', 'default', 'value' => self::STATUS_INACTIVE],
             ['status', 'in', 'range' => [self::STATUS_ACTIVE, self::STATUS_INACTIVE, self::STATUS_DELETED]],
-            [['role_id'], 'exist', 'skipOnError' => true, 'targetClass' => UserRole::class, 'targetAttribute' => ['role_id' => 'id']],
-            [['is_completed', 'is_verified'], 'default', 'value' => 0],
-            [['is_completed', 'is_verified'], 'boolean'],
+            ['is_completed', 'default', 'value' => 0],
+            ['is_completed', 'boolean'],
         ];
     }
 
@@ -85,25 +84,12 @@ class User extends ActiveRecord implements IdentityInterface
     {
         $fields = parent::fields();
 
-        // Menambahkan fields yang ingin disertakan dalam response JSON
-        $fields['role'] = function () {
-            $userRole = UserRole::findOne($this->role_id);
-            return [
-                'id' => $userRole->id,
-                'name' => $userRole->name,
-            ];
-        };
-
         $fields['is_completed'] = function () {
             return $this->is_completed == 1 ? true : false;
         };
 
-        $fields['is_verified'] = function () {
-            return $this->is_verified == 1 ? true : false;
-        };
-
         // Menghapus fields yang tidak perlu disertakan dalam response JSON
-        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status'], $fields['created_at'], $fields['updated_at'], $fields['role_id']);
+        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status'], $fields['created_at'], $fields['updated_at']);
 
         return $fields;
     }
@@ -284,13 +270,14 @@ class User extends ActiveRecord implements IdentityInterface
         $this->password_reset_token = null;
     }
 
-    /**
-     * Gets role associated with the user.
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    public function getRole()
+    public static function findByUsernameOrEmail($username, $email)
     {
-        return $this->hasOne(UserRole::class, ['id' => 'role_id']);
+        // Find a user by username or email
+        $user = User::find()
+            ->where(['username' => $username])
+            ->orWhere(['email' => $email])
+            ->one();
+
+        return $user;
     }
 }

@@ -16,24 +16,20 @@ class Livestock extends ActiveRecord
     public function rules()
     {
         return [
-            [['name', 'birthdate', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
-            [['type_of_livestock_id'], 'required', 'message' => 'Pilih jenis ternak.'],
-            [['breed_of_livestock_id'], 'required', 'message' => 'Pilih ras ternak.'],
-            [['maintenance_id'], 'required', 'message' => 'Pilih pemeliharaan ternak.'],
-            [['source_id'], 'required', 'message' => 'Pilih sumber ternak.'],
-            [['ownership_status_id'], 'required', 'message' => 'Pilih status kepemilikan ternak.'],
-            [['reproduction_id'], 'required', 'message' => 'Pilih reproduksi ternak.'],
+            [['name', 'birthdate', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'age', 'chest_size', 'body_weight'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
             [['birthdate'], 'required', 'message' => 'Masukkan tanggal lahir ternak.'],
+            [['user_id', 'cage_id', 'age'], 'integer'],
             ['name', 'validateLivestockName'],
-            [['eid', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id'], 'integer'],
             [['chest_size', 'body_weight'], 'number'],
-            [['name', 'gender', 'age', 'health', 'livestock_image'], 'string', 'max' => 255],
-            [['vid'], 'string', 'max' => 10],
+            [['name', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender'], 'string', 'max' => 255],
+            [['livestock_image'], 'string'],
             [['eid', 'vid'], 'unique', 'message' => '{attribute} sudah digunakan oleh ternak lain.'],
             [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => 'Nama harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
             ['eid', 'string', 'length' => 32],
             ['eid', 'match', 'pattern' => '/^\d{32}$/', 'message' => 'EID harus terdiri dari 32 digit.'],
-            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}[0-9]{4}$/', 'message' => 'Visual ID must follow the pattern of three uppercase letters followed by four digits', 'on' => 'create'],
+            [['vid'], 'string', 'max' => 10],
+            [['vid'], 'match', 'pattern' => '/^[A-Z]{3}[0-9]{4}$/', 'message' => 'Visual ID harus mengikuti pola tiga huruf besar diikuti empat digit.', 'on' => 'create'],
+            [['birthdate'], 'safe'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak valid. Tolong gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
             [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Format file tidak valid atau ukuran file terlalu besar (maksimal 5 MB).'],
@@ -49,17 +45,17 @@ class Livestock extends ActiveRecord
             'name' => 'Nama',
             'birthdate' => 'Tanggal Lahir',
             'cage_id' => 'Kandang',
-            'type_of_livestock_id' => 'Jenis Ternak',
-            'breed_of_livestock_id' => 'Ras Ternak',
-            'maintenance_id' => 'Pemeliharaan',
-            'source_id' => 'Sumber Ternak',
-            'ownership_status_id' => 'Status Kepemilikan',
-            'reproduction_id' => 'Status Reproduksi',
+            'type_of_livestock' => 'Jenis Ternak',
+            'breed_of_livestock' => 'Ras Ternak',
+            'purpose' => 'Tujuan Pemeliharaan',
+            'maintenance' => 'Pola Pemeliharaan',
+            'source' => 'Asal Ternak',
+            'ownership_status' => 'Status Kepemilikan',
+            'reproduction' => 'Kondisi Reproduksi',
             'gender' => 'Jenis Kelamin',
             'age' => 'Usia',
-            'chest_size' => 'Ukuran Dada',
-            'body_weight' => 'Berat Badan',
-            'health' => 'Kesehatan',
+            'chest_size' => 'Lingkar Dada',
+            'body_weight' => 'Berat Sapi',
             'livestock_image' => 'Foto Ternak',
         ];
     }
@@ -77,10 +73,10 @@ class Livestock extends ActiveRecord
             'age',
             'chest_size',
             'body_weight',
-            'health',
             'cage',
             'type_of_livestock',
             'breed_of_livestock',
+            'purpose',
             'maintenance',
             'source',
             'ownership_status',
@@ -94,80 +90,33 @@ class Livestock extends ActiveRecord
             ];
         };
 
-        $fields['type_of_livestock'] = function ($model) {
-            return [
-                'id' => $model->type_of_livestock_id,
-                'name' => $model->typeOfLivestock->name,
-            ];
-        };
+        // $fields['chest_size'] = function ($model) {
+        //     return $model->chest_size . ' cm';
+        // };
 
-        $fields['breed_of_livestock'] = function ($model) {
-            return [
-                'id' => $model->breed_of_livestock_id,
-                'name' => $model->breedOfLivestock->name,
-            ];
-        };
-
-        $fields['maintenance'] = function ($model) {
-            return [
-                'id' => $model->maintenance_id,
-                'name' => $model->maintenance->name,
-            ];
-        };
-
-        $fields['source'] = function ($model) {
-            return [
-                'id' => $model->source_id,
-                'name' => $model->source->name,
-            ];
-        };
-
-        $fields['ownership_status'] = function ($model) {
-            return [
-                'id' => $model->ownership_status_id,
-                'name' => $model->ownershipStatus->name,
-            ];
-        };
-
-        $fields['reproduction'] = function ($model) {
-            return [
-                'id' => $model->reproduction_id,
-                'name' => $model->reproduction->name,
-            ];
-        };
-
-        $fields['chest_size'] = function ($model) {
-            return $model->chest_size . ' cm';
-        };
-
-        $fields['body_weight'] = function ($model) {
-            return $model->body_weight . ' kg';
-        };
+        // $fields['body_weight'] = function ($model) {
+        //     return $model->body_weight . ' kg';
+        // };
 
         $fields['livestock_images'] = function ($model) {
             return array_map(function ($livestockImage) {
-                return $livestockImage->image_path;
+                return sprintf('https://storage.googleapis.com/digiternak1/%s', $livestockImage->image_path);
             }, $model->livestockImages);
         };
 
         return $fields;
     }
 
-    public function extraFields()
-    {
-        return [
-            'is_deleted',
-        ];
-    }
-
     public function validateBirthdate($attribute, $params)
     {
-        $timezone = new \DateTimeZone('Asia/Jakarta');
-        $today = new \DateTime('now', $timezone);
+        $today = new \DateTime();
         $today->setTime(0, 0, 0);
         $birthdate = \DateTime::createFromFormat('Y-m-d', $this->$attribute);
-
-        if ($birthdate > $today) {
+    
+        $tomorrow = clone $today;
+        $tomorrow->modify('+1 day');
+    
+        if ($birthdate >= $tomorrow) {
             $this->addError($attribute, 'Tanggal lahir ternak tidak boleh lebih dari hari ini.');
         }
     }
@@ -234,42 +183,6 @@ class Livestock extends ActiveRecord
         return $this->hasMany(LivestockImage::class, ['livestock_id' => 'id']);
     }
 
-    // Definisikan relasi dengan model TypeOfLivestock
-    public function getTypeOfLivestock()
-    {
-        return $this->hasOne(TypeOfLivestock::class, ['id' => 'type_of_livestock_id']);
-    }
-
-    // Definisikan relasi dengan model BreedOfLivestock
-    public function getBreedOfLivestock()
-    {
-        return $this->hasOne(BreedOfLivestock::class, ['id' => 'breed_of_livestock_id']);
-    }
-
-    // Definisikan relasi dengan model Maintenance
-    public function getMaintenance()
-    {
-        return $this->hasOne(Maintenance::class, ['id' => 'maintenance_id']);
-    }
-
-    // Definisikan relasi dengan model Source
-    public function getSource()
-    {
-        return $this->hasOne(Source::class, ['id' => 'source_id']);
-    }
-
-    // Definisikan relasi dengan model OwnershipStatus
-    public function getOwnershipStatus()
-    {
-        return $this->hasOne(OwnershipStatus::class, ['id' => 'ownership_status_id']);
-    }
-
-    // Definisikan relasi dengan model Reproduction
-    public function getReproduction()
-    {
-        return $this->hasOne(Reproduction::class, ['id' => 'reproduction_id']);
-    }
-
     public function getUser()
     {
         return $this->hasOne(User::class, ['id' => 'user_id']);
@@ -297,7 +210,7 @@ class Livestock extends ActiveRecord
     public function scenarios()
     {
         $scenarios = parent::scenarios();
-        $scenarios[self::SCENARIO_UPDATE] = ['name', 'birthdate', 'cage_id', 'type_of_livestock_id', 'breed_of_livestock_id', 'maintenance_id', 'source_id', 'ownership_status_id', 'reproduction_id', 'gender', 'age', 'chest_size', 'body_weight', 'health'];
+        $scenarios[self::SCENARIO_UPDATE] = ['name', 'birthdate', 'cage_id', 'type_of_livestock', 'breed_of_livestock', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'age', 'chest_size', 'body_weight'];
         return $scenarios;
     }
 }

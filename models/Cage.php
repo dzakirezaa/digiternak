@@ -24,8 +24,8 @@ class Cage extends ActiveRecord
             [['name'], 'string', 'max' => 30],
             ['name', 'validateCageName'],
             ['user_id', 'integer'],
-            [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,30}$/', 'message' => 'Nama harus terdiri dari 3 sampai 30 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
-            [['location', 'description'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,30}$/', 'message' => '{attribute} terdiri dari 3 sampai 30 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            [['location', 'description'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
         ];
     }
 
