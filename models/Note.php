@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveRecord;
+use yii\behaviors\TimestampBehavior;
 
 class Note extends ActiveRecord
 {
@@ -12,12 +13,29 @@ class Note extends ActiveRecord
         return '{{%note}}';
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                ],
+                'value' => date('Y-m-d H:i:s'),
+            ],
+        ];
+    }
+
     public function rules()
     {
         return [
-            [['livestock_feed', 'costs', 'feed_weight', 'date_recorded'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
+            [['livestock_feed', 'costs', 'feed_weight'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
             ['costs', 'validateCosts'],
-            [['livestock_name', 'livestock_id', 'livestock_vid', 'livestock_cage', 'location', 'date_recorded'], 'safe'],
+            [['livestock_name', 'livestock_id', 'livestock_vid', 'livestock_cage', 'location', 'created_at', 'updated_at'], 'safe'],
             [['costs', 'feed_weight'], 'number', 'min' => 0, 'message' => '{attribute} harus berupa angka positif.'],
             [['location', 'livestock_feed', 'vitamin'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
             [['details'], 'match', 'pattern' => '/^[A-Za-z0-9\s.,-]{3,255}$/', 'message' => '{attribute} harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, spasi, dan tanda baca.'],
@@ -33,7 +51,6 @@ class Note extends ActiveRecord
             'livestock_vid',
             'livestock_name',
             'livestock_cage',
-            'date_recorded',
             'location',
             'livestock_feed',
             'feed_weight',
@@ -48,6 +65,9 @@ class Note extends ActiveRecord
             }, $model->noteImages);
         };
 
+        $fields['created_at'] = 'created_at';
+        $fields['updated_at'] = 'updated_at';
+
         return $fields;
     }
 
@@ -58,7 +78,6 @@ class Note extends ActiveRecord
             'livestock_vid' => 'Visual ID',
             'livestock_name' => 'Nama Ternak',
             'livestock_cage' => 'Kandang',
-            'date_recorded' => 'Tanggal Pencatatan',
             'location' => 'Lokasi',
             'livestock_feed' => 'Pakan Ternak',
             'feed_weight' => 'Berat Pakan',

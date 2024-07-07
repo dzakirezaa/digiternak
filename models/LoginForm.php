@@ -56,14 +56,14 @@ class LoginForm extends Model
     /**
      * Logs in a user using the provided username and password.
      *
-     * @return bool whether the user is logged in successfully
+     * @return string|null the JWT token if the user is logged in successfully, otherwise null
      */
     public function login()
     {
         if ($this->validate()) {
             if ($this->getUser()) {
                 // Perbarui auth_key jika login berhasil
-                $this->getUser()->generateAuthKey();
+                $this->getUser()->generateJwt();
                 $this->getUser()->save(false);
 
                 // Mengembalikan auth_key sebagai token otentikasi

@@ -3,7 +3,6 @@
 namespace app\controllers;
 
 use Yii;
-use yii\rest\ActiveController;
 use yii\web\NotFoundHttpException;
 use yii\web\BadRequestHttpException;
 use yii\web\ServerErrorHttpException;
@@ -16,7 +15,7 @@ use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
 use Google\Cloud\Storage\StorageClient;
 
-class NoteController extends ActiveController
+class NoteController extends BaseController
 {
     public $modelClass = 'app\models\Note';
 
@@ -44,6 +43,20 @@ class NoteController extends ActiveController
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
             'except' => ['options'], 
+        ];
+
+        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'create' => ['POST'],
+                'update' => ['PUT', 'PATCH'],
+                'delete' => ['DELETE'],
+                'view' => ['GET'],
+                'index' => ['GET'],
+                'get-note-by-livestock-id' => ['GET'],
+                'upload-documentation' => ['POST'],
+            ],
         ];
 
         return $behaviors;
@@ -121,8 +134,7 @@ class NoteController extends ActiveController
         $model->livestock_name = $livestock->name;
         $model->livestock_cage = $cage->name;
         $model->location = $cage->location;
-        // $model->date_recorded = date('Y-m-d H:i:s'); // Updated to include time
-
+        
         // Load the data from the request body
         if ($model->load(Yii::$app->getRequest()->getBodyParams(), '') && $model->validate()) {
             // Save the model
@@ -171,7 +183,6 @@ class NoteController extends ActiveController
         $model->livestock_feed = $data['livestock_feed'] ?? $model->livestock_feed;
         $model->feed_weight = $data['feed_weight'] ?? $model->feed_weight;
         $model->vitamin = $data['vitamin'] ?? $model->vitamin;
-        $model->date_recorded = $data['date_recorded'] ?? $model->date_recorded;
         $model->costs = $data['costs'] ?? $model->costs;
         $model->details = $data['details'] ?? $model->details;
 
@@ -372,35 +383,5 @@ class NoteController extends ActiveController
                 'error' => true,
             ];
         }
-    }
-
-    public function getValidationErrors($model)
-    {
-        $errorDetails = [];
-        foreach ($model->errors as $errors) {
-            foreach ($errors as $error) {
-                $errorDetails[] = $error;
-            }
-        }
-        return $errorDetails;
-    }
-
-    public function actionHandleRequest($id = null)
-    {
-        $request = Yii::$app->request;
-
-        if ($request->isGet) {
-            return $id ? $this->actionView($id) : $this->actionIndex();
-        }
-
-        if ($request->isPut || $request->isPatch) {
-            return $this->actionUpdate($id);
-        }
-
-        if ($request->isDelete) {
-            return $this->actionDelete($id);
-        }
-
-        throw new \yii\web\MethodNotAllowedHttpException('Method not allowed.');
     }
 }

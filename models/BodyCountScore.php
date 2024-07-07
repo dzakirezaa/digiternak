@@ -4,6 +4,7 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveRecord;
+use yii\behaviors\TimestampBehavior;
 
 class BodyCountScore extends ActiveRecord
 {
@@ -15,13 +16,30 @@ class BodyCountScore extends ActiveRecord
     /**
      * {@inheritdoc}
      */
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                ],
+                'value' => date('Y-m-d H:i:s'),
+            ],
+        ];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function rules()
     {
         return [
-            [['livestock_id', 'body_weight', 'chest_size', 'hips', 'date_check'], 'required',  'message' => '{attribute} tidak boleh kosong.'],
+            [['livestock_id', 'body_weight', 'chest_size', 'hips'], 'required',  'message' => '{attribute} tidak boleh kosong.'],
             [['livestock_id'], 'integer'],
             [['body_weight', 'chest_size', 'hips'], 'number', 'min' => 0, 'tooSmall' => '{attribute} harus bernilai positif.', 'message' => '{attribute} harus berupa angka.', 'skipOnEmpty' => true],
-            [['date_check'], 'safe'],
+            [['created_at', 'updated_at'], 'safe'],
             [['bcs_image'], 'string'],
             [['bcs_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Format file tidak valid atau ukuran file terlalu besar (maksimal 5 MB).'],
         ];
@@ -38,27 +56,32 @@ class BodyCountScore extends ActiveRecord
             'body_weight' => 'Berat Sapi',
             'chest_size' => 'Lingkar Dada',
             'hips' => 'Ukuran Pinggul',
-            'date_check' => 'Tanggal Pemeriksaan',
             'bcs_image' => 'Dokumentasi Pemeriksaan',
         ];
     }
 
     public function fields()
     {
-        $fields = [
-            'id',
-            'livestock_id',
+        $fields = ['id'];
+
+        $fields['livestock_id'] = function ($model) {
+            return (int) $model->livestock_id;
+        };
+
+        $fields = array_merge($fields, [
             'body_weight',
             'chest_size',
             'hips',
-            'date_check',
-        ];
+        ]);
 
         $fields['bcs_images'] = function ($model) {
             return array_map(function ($bcsImage) {
                 return sprintf('https://storage.googleapis.com/digiternak1/%s', $bcsImage->image_path);
             }, $model->bcsImages);
         };
+
+        $fields['created_at'] = 'created_at';
+        $fields['updated_at'] = 'updated_at';
 
         return $fields;
     }

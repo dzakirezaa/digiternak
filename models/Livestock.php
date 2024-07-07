@@ -5,6 +5,7 @@ namespace app\models;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\helpers\ArrayHelper;
+use yii\behaviors\TimestampBehavior;
 
 class Livestock extends ActiveRecord
 {
@@ -13,15 +14,32 @@ class Livestock extends ActiveRecord
         return '{{%livestock}}';
     }
 
+    /**
+     * {@inheritdoc}
+     */
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                ],
+                'value' => date('Y-m-d H:i:s'),
+            ],
+        ];
+    }
+
     public function rules()
     {
         return [
-            [['name', 'birthdate', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'age', 'chest_size', 'body_weight'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
+            [['name', 'birthdate', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'age', 'chest_size', 'body_weight', 'health'], 'required', 'message' => '{attribute} tidak boleh kosong.'],
             [['birthdate'], 'required', 'message' => 'Masukkan tanggal lahir ternak.'],
             [['user_id', 'cage_id', 'age'], 'integer'],
             ['name', 'validateLivestockName'],
             [['chest_size', 'body_weight'], 'number'],
-            [['name', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender'], 'string', 'max' => 255],
+            [['name', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'health'], 'string', 'max' => 255],
             [['livestock_image'], 'string'],
             [['eid', 'vid'], 'unique', 'message' => '{attribute} sudah digunakan oleh ternak lain.'],
             [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => 'Nama harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
@@ -29,7 +47,7 @@ class Livestock extends ActiveRecord
             ['eid', 'match', 'pattern' => '/^\d{32}$/', 'message' => 'EID harus terdiri dari 32 digit.'],
             [['vid'], 'string', 'max' => 10],
             [['vid'], 'match', 'pattern' => '/^[A-Z]{3}[0-9]{4}$/', 'message' => 'Visual ID harus mengikuti pola tiga huruf besar diikuti empat digit.', 'on' => 'create'],
-            [['birthdate'], 'safe'],
+            [['created_at', 'updated_at', 'birthdate'], 'safe'],
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak valid. Tolong gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
             [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Format file tidak valid atau ukuran file terlalu besar (maksimal 5 MB).'],
@@ -56,6 +74,7 @@ class Livestock extends ActiveRecord
             'age' => 'Usia',
             'chest_size' => 'Lingkar Dada',
             'body_weight' => 'Berat Sapi',
+            'health' => 'Kesehatan Ternak',
             'livestock_image' => 'Foto Ternak',
         ];
     }
@@ -73,6 +92,7 @@ class Livestock extends ActiveRecord
             'age',
             'chest_size',
             'body_weight',
+            'health',
             'cage',
             'type_of_livestock',
             'breed_of_livestock',
@@ -103,6 +123,9 @@ class Livestock extends ActiveRecord
                 return sprintf('https://storage.googleapis.com/digiternak1/%s', $livestockImage->image_path);
             }, $model->livestockImages);
         };
+
+        $fields['created_at'] = 'created_at';
+        $fields['updated_at'] = 'updated_at';
 
         return $fields;
     }

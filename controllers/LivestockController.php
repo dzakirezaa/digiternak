@@ -3,7 +3,6 @@
 namespace app\controllers;
 
 use Yii;
-use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
 use yii\web\NotFoundHttpException;
 use yii\web\ServerErrorHttpException;
@@ -17,7 +16,7 @@ use yii\helpers\FileHelper;
 use Google\Cloud\Storage\StorageClient;
 use Google\Cloud\Storage\Acl;
 
-class LivestockController extends ActiveController
+class LivestockController extends BaseController
 {
     public $modelClass = 'app\models\Livestock';
 
@@ -45,6 +44,20 @@ class LivestockController extends ActiveController
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
             'except' => ['options'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+        ];
+
+        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'create' => ['POST'],
+                'update' => ['PUT', 'PATCH'],
+                'delete' => ['DELETE'],
+                'view' => ['GET'],
+                'search' => ['GET'],
+                'get-livestocks' => ['GET'],
+                'upload-image' => ['POST'],
+            ],
         ];
 
         return $behaviors;
@@ -300,6 +313,15 @@ class LivestockController extends ActiveController
 
             // Iterate through each uploaded file
             foreach ($imageFiles as $index => $imageFile) {
+                // Check if the temporary file path is set
+                if (empty($imageFile->tempName)) {
+                    Yii::$app->response->statusCode = 400;
+                    return [
+                        'message' => 'Gagal mengunggah gambar. Silakan coba lagi.',
+                        'error' => true,
+                    ];
+                }
+
                 // Generate a unique file name
                 $imageName = Yii::$app->security->generateRandomString(12) . $index . '.' . $imageFile->getExtension();
             
@@ -362,40 +384,6 @@ class LivestockController extends ActiveController
         } else {
             return null;
         }
-    }
-
-    public function getValidationErrors($model)
-    {
-        $errorDetails = [];
-        foreach ($model->errors as $errors) {
-            foreach ($errors as $error) {
-                $errorDetails[] = $error;
-            }
-        }
-        return $errorDetails;
-    }
-
-    public function actionHandleRequest($id = null)
-    {
-        $request = Yii::$app->request;
-
-        if ($request->isGet) {
-            return $this->actionView($id);
-        }
-
-        if ($request->isPost) {
-            return $this->actionCreate();
-        }
-
-        if ($request->isPut || $request->isPatch) {
-            return $this->actionUpdate($id);
-        }
-
-        if ($request->isDelete) {
-            return $this->actionDelete($id);
-        }
-
-        throw new \yii\web\MethodNotAllowedHttpException('Method not allowed.');
     }
 }
 

@@ -3,19 +3,23 @@
 namespace app\controllers;
 
 use Yii;
-use yii\rest\ActiveController;
 use yii\filters\auth\HttpBearerAuth;
 use app\models\User;
 use app\models\LoginForm;
 use app\models\RegisterForm;
 use app\models\EditProfileForm;
-use yii\web\MethodNotAllowedHttpException;
 use app\models\RequestPasswordResetForm;
 use yii\web\BadRequestHttpException;
 
-class UserController extends ActiveController
+class UserController extends BaseController
 {
     public $modelClass = 'app\models\User';
+
+    public function init()
+    {
+        parent::init();
+        $this->noAuthActions = ['register', 'login', 'verify-email', 'request-password-reset'];
+    }
 
     /**
      * @inheritdoc
@@ -28,6 +32,20 @@ class UserController extends ActiveController
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
             'except' => ['register', 'login', 'verify-email', 'request-password-reset'],
+        ];
+
+        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        $behaviors['verbs'] = [
+            'class' => \yii\filters\VerbFilter::class,
+            'actions' => [
+                'register' => ['POST'],
+                'login' => ['POST'],
+                'logout' => ['POST'],
+                'verify-email' => ['GET'],
+                'request-password-reset' => ['POST'],
+                'profile' => ['GET'],
+                'edit-profile' => ['PUT'],
+            ],
         ];
 
         return $behaviors;
@@ -200,8 +218,6 @@ class UserController extends ActiveController
             ];
         }
 
-        
-
         if ($model->login()) {
             // If login is successful
             $user = User::findByUsername($model->username);
@@ -226,7 +242,8 @@ class UserController extends ActiveController
                     'id' => $user->id,
                 ]
             ];
-        } else {
+        } 
+            else {
             // If login fails
             Yii::$app->response->statusCode = 401; // Unauthorized
             return [
@@ -296,6 +313,8 @@ class UserController extends ActiveController
                     'phone_number' => $user->phone_number,
                     'address' => $user->address,
                     'is_completed' => (bool)$user->is_completed,
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at,
                 ],
             ];
         } catch (\yii\web\UnauthorizedHttpException $e) {
@@ -403,32 +422,6 @@ class UserController extends ActiveController
 
         Yii::$app->getResponse()->setStatusCode(400); // Bad Request
         return $model;
-    }
-
-    public function getValidationErrors($model)
-    {
-        $errorDetails = [];
-        foreach ($model->errors as $errors) {
-            foreach ($errors as $error) {
-                $errorDetails[] = $error;
-            }
-        }
-        return $errorDetails;
-    }
-
-    public function actionHandleRequest()
-    {
-        $request = Yii::$app->request;
-
-        if ($request->isGet) {
-            return $this->actionProfile();
-        }
-
-        if ($request->isPut) {
-            return $this->actionEditProfile();
-        }
-
-        throw new MethodNotAllowedHttpException('Method not allowed.');
     }
 }
 

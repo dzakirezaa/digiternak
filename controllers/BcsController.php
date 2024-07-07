@@ -3,16 +3,16 @@
 namespace app\controllers;
 
 use Yii;
-use yii\rest\ActiveController;
 use app\models\BodyCountScore;
 use app\models\Livestock;
 use yii\filters\auth\HttpBearerAuth;
+use yii\filters\VerbFilter;
 use yii\web\UploadedFile;
 use yii\helpers\FileHelper;
 use app\models\BcsImage;
 use Google\Cloud\Storage\StorageClient;
 
-class BcsController extends ActiveController
+class BcsController extends BaseController
 {
     public $modelClass = 'app\models\BodyCountScore';
 
@@ -40,6 +40,19 @@ class BcsController extends ActiveController
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
             'except' => ['options'], 
+        ];
+
+        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        $behaviors['verbs'] = [
+            'class' => VerbFilter::class,
+            'actions' => [
+                'create' => ['POST'],
+                'update' => ['PUT', 'PATCH'],
+                'delete' => ['DELETE'],
+                'view' => ['GET'],
+                'get-bcs-by-livestock-id' => ['GET'],
+                'upload-bcs' => ['POST'],
+            ],
         ];
 
         return $behaviors;
@@ -146,19 +159,6 @@ class BcsController extends ActiveController
             ];
             return $response;
         }
-    }
-
-    public function actionIndex()
-    {
-        $model = BodyCountScore::find()->all();
-        $response = Yii::$app->response;
-        $response->setStatusCode(200);
-        $response->data = [
-            'message' => 'Data BCS berhasil ditemukan.',
-            'error' => false,
-            'data' => $model,
-        ];
-        return $response;
     }
 
     public function actionView($id)
@@ -292,36 +292,6 @@ class BcsController extends ActiveController
                 'error' => true,
             ];
         }
-    }
-
-    public function getValidationErrors($model)
-    {
-        $errorDetails = [];
-        foreach ($model->errors as $errors) {
-            foreach ($errors as $error) {
-                $errorDetails[] = $error;
-            }
-        }
-        return $errorDetails;
-    }
-
-    public function actionHandleRequest($id = null)
-    {
-        $request = Yii::$app->request;
-    
-        if ($request->isGet) {
-            return $this->actionView($id);
-        }
-    
-        if ($request->isPut || $request->isPatch) {
-            return $this->actionUpdate($id);
-        }
-    
-        if ($request->isDelete) {
-            return $this->actionDelete($id);
-        }
-    
-        throw new \yii\web\MethodNotAllowedHttpException('Method not allowed.');
     }
 
     protected function findModel($id)

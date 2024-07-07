@@ -5,7 +5,6 @@ namespace app\models;
 use Yii;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
-use yii\db\Expression;
 use yii\web\IdentityInterface;
 
 /**
@@ -21,10 +20,6 @@ use yii\web\IdentityInterface;
  * @property integer $status
  * @property integer $created_at
  * @property integer $updated_at
- * @property string $password write-only password
- * @property integer $person_id
- * @property integer $role_id
- * @property boolean $is_deleted
  */
 
 class User extends ActiveRecord implements IdentityInterface
@@ -89,7 +84,7 @@ class User extends ActiveRecord implements IdentityInterface
         };
 
         // Menghapus fields yang tidak perlu disertakan dalam response JSON
-        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status'], $fields['created_at'], $fields['updated_at']);
+        unset($fields['password_hash'], $fields['password_reset_token'], $fields['verification_token'], $fields['auth_key'], $fields['status']);
 
         return $fields;
     }
@@ -215,17 +210,54 @@ class User extends ActiveRecord implements IdentityInterface
     }
 
     /**
-     * Generates authentication key
+     * Generates JWT
      */
-    public function generateAuthKey()
+    public function generateJwt()
     {
+        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+        
         $timestamp = time();
+        $expireTime = $timestamp + 3600; 
         $userId = $this->id; // assuming the user model has an 'id' attribute
         $username = $this->username; // assuming the user model has a 'username' attribute
+        $payload = json_encode([
+            'userId' => $userId, 
+            'username' => $username, 
+            'iat' => $timestamp,
+            'exp' => $expireTime // Expiration time
+        ]);
+        
         $secretKey = Yii::$app->params['secretKey']; // a secret key defined in your application parameters
+        
+        // Base64Url encode the header and payload
+        $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+        $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+        
+        // Create the signature hash
+        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secretKey, true);
+        $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+        
+        // Concatenate Header, Payload, and Signature to get the JWT
+        $this->auth_key = $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+    }
 
-        // Generate a token with the format 'hash(userId-username-timestamp-randomString-secretKey)'
-        $this->auth_key = hash('sha256', $userId . '-' . $username . '-' . $timestamp . '-' . Yii::$app->security->generateRandomString() . '-' . $secretKey);
+    public static function verifyJwt($token)
+    {
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            return false; // Invalid token
+        }
+
+        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+        $currentTime = time();
+
+        if (!isset($payload['exp']) || $currentTime >= $payload['exp']) {
+            return false; // Token is expired or invalid
+        }
+
+        // Optionally, verify the signature here for extra security
+
+        return true; // Token is valid
     }
 
     /**

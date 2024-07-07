@@ -23,7 +23,7 @@
         "symfony/mailer": "^6.0",
         "google/apiclient": "^2.16",
         "symfony/mailgun-mailer": "^6.0",
-        "sizeg/yii2-jwt": "^1.2"
+        "kaabar-jwt/yii2-jwt": "dev-master"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",

@@ -4,12 +4,27 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveRecord;
+use yii\behaviors\TimestampBehavior;
 
 class Cage extends ActiveRecord
 {
     public static function tableName()
     {
         return '{{%cage}}';
+    }
+
+    public function behaviors()
+    {
+        return [
+            [
+                'class' => TimestampBehavior::class,
+                'attributes' => [
+                    ActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
+                    ActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
+                ],
+                'value' => date('Y-m-d H:i:s'),
+            ]
+        ];
     }
 
     const SCENARIO_CREATE = 'create';
@@ -21,11 +36,12 @@ class Cage extends ActiveRecord
             [['name', 'location', 'description'], 'required', 'on' => self::SCENARIO_CREATE, 'message' => '{attribute} tidak boleh kosong.'],
             [['name', 'location', 'description'], 'safe', 'on' => self::SCENARIO_UPDATE],
             [['location', 'description'], 'string', 'max' => 255],
-            [['name'], 'string', 'max' => 30],
+            [['name'], 'string', 'max' => 50],
             ['name', 'validateCageName'],
             ['user_id', 'integer'],
             [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,30}$/', 'message' => '{attribute} terdiri dari 3 sampai 30 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
             [['location', 'description'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => '{attribute} terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
+            [['created_at', 'updated_at'], 'safe'],
         ];
     }
 
@@ -48,7 +64,9 @@ class Cage extends ActiveRecord
                 return array_map(function ($livestock) {
                     return $livestock->id;
                 }, $model->livestocks);
-            }
+            },
+            'created_at',
+            'updated_at',
         ];
     }
 
