@@ -17,5 +17,3 @@ Verify Now: <?= Html::encode($verifyLink) ?>
 Welcome to Digiternak!
 
 Digiternak Team
-
-This verification link will expire in 24 hours.

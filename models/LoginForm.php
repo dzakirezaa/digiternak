@@ -42,9 +42,7 @@ class LoginForm extends Model
      */
     public function validatePassword($attribute, $params)
     {
-        if ($this->password === '') {
-            $this->addError($attribute, '{attribute} tidak boleh kosong.');
-        } elseif (!$this->hasErrors()) {
+        if (!$this->hasErrors()) {
             $user = $this->getUser();
 
             if (!$user || !$user->validatePassword($this->password)) {
@@ -60,15 +58,13 @@ class LoginForm extends Model
      */
     public function login()
     {
-        if ($this->validate()) {
-            if ($this->getUser()) {
-                // Perbarui auth_key jika login berhasil
-                $this->getUser()->generateJwt();
-                $this->getUser()->save(false);
+        if ($this->validate() && $this->getUser()) {
+            // Perbarui auth_key jika login berhasil
+            $this->_user->generateJwt();
+            $this->_user->save(false);
 
-                // Mengembalikan auth_key sebagai token otentikasi
-                return $this->getUser()->auth_key;
-            }
+            // Mengembalikan auth_key sebagai token otentikasi
+            return $this->_user->auth_key;
         }
         return null;
     }
@@ -87,3 +83,26 @@ class LoginForm extends Model
         return $this->_user;
     }
 }
+
+// public function login()
+//     {
+//         if ($this->validate()) {
+//             $user = $this->getUser();
+//             if ($user) {
+//                 // Generate JWT token
+//                 $jwtToken = $user->generateJwt();
+
+//                 // Use Yii2's cache to store the JWT token
+//                 // The key is prefixed with 'jwt_' for clarity, adjust as needed
+//                 $cacheKey = 'jwt_' . $user->id;
+//                 $expiration = 3600; // Token expiration time in seconds, adjust as needed
+
+//                 // Save JWT token to cache
+//                 Yii::$app->cache->set($cacheKey, $jwtToken, $expiration);
+
+//                 // Return the JWT token
+//                 return $jwtToken;
+//             }
+//         }
+//         return null;
+//     }

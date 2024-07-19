@@ -18,7 +18,7 @@ class DashboardController extends Controller
         // Menambahkan authenticator untuk otentikasi menggunakan access token
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
-            'except' => ['options'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+            'except' => ['options'],
         ];
 
         return $behaviors;

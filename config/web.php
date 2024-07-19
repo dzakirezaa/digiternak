@@ -101,7 +101,7 @@ $config = [
                         'DELETE <id:\d+>' => 'delete',
                         'GET vid/<vid:[^\/]+>' => 'search',
                         'GET uid/<user_id:\d+>' => 'get-livestocks',
-                        'POST upload-image/<id:\d+>' => 'upload-image',
+                        'POST upload/<id:\d+>/image' => 'upload-image',
                     ],
                 ],
                 [
@@ -115,7 +115,7 @@ $config = [
                         'DELETE <id:\d+>' => 'delete',
                         'GET livestock/<livestock_id:\d+>' => 'get-note-by-livestock-id',
                         'GET' => 'index',
-                        'POST upload-note/<id:\d+>' => 'upload-documentation',
+                        'POST upload/<id:\d+>/image' => 'upload-documentation',
                     ],
                 ],
                 [
@@ -127,8 +127,8 @@ $config = [
                         'GET <id:\d+>' => 'view',
                         'PUT <id:\d+>' => 'update',
                         'DELETE <id:\d+>' => 'delete',
-                        'GET livestock/<livestock_id:\d+>' => 'get-bcs-by-livestock-id',
-                        'POST upload-bcs/<id:\d+>' => 'upload-bcs',
+                        'GET ls/<livestock_id:\d+>' => 'get-bcs-by-livestock-id',
+                        'POST upload/<id:\d+>/image' => 'upload-bcs',
                     ],
                 ],
                 'dashboard/<userId:\d+>' => 'dashboard/user-overview',

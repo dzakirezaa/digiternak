@@ -40,13 +40,13 @@ class LivestockController extends BaseController
     {
         $behaviors = parent::behaviors();
 
-        // Menambahkan authenticator untuk otentikasi menggunakan access token
+        // authenticator untuk otentikasi
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
-            'except' => ['options'], // Tambahkan action yang tidak memerlukan otentikasi di sini
+            'except' => ['options'], 
         ];
 
-        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        // VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
@@ -127,6 +127,17 @@ class LivestockController extends BaseController
         $model = $this->findModel($id);
         $model->scenario = Livestock::SCENARIO_UPDATE;
         $model->load(Yii::$app->getRequest()->getBodyParams(), '');
+
+        // Check if the cage exists
+        $cageId = $model->cage_id;
+        $cageExists = Cage::findOne($cageId);
+        if (!$cageExists) {
+            Yii::$app->response->statusCode = 404;
+            return [
+                'message' => 'Kandang tidak ditemukan.',
+                'error' => true,
+            ];
+        }
 
         if ($model->save()) {
             Yii::$app->response->statusCode = 200;

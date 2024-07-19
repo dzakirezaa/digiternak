@@ -241,6 +241,9 @@ class User extends ActiveRecord implements IdentityInterface
         $this->auth_key = $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
     }
 
+    /**
+     * Verifies JWT
+     */
     public static function verifyJwt($token)
     {
         $parts = explode('.', $token);

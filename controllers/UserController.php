@@ -28,13 +28,13 @@ class UserController extends BaseController
     {
         $behaviors = parent::behaviors();
 
-        // Menambahkan authenticator untuk otentikasi
+        // authenticator untuk otentikasi
         $behaviors['authenticator'] = [
             'class' => HttpBearerAuth::class,
             'except' => ['register', 'login', 'verify-email', 'request-password-reset'],
         ];
 
-        // Menambahkan VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
+        // VerbFilter untuk memastikan setiap action hanya menerima HTTP method yang sesuai
         $behaviors['verbs'] = [
             'class' => \yii\filters\VerbFilter::class,
             'actions' => [
@@ -49,25 +49,6 @@ class UserController extends BaseController
         ];
 
         return $behaviors;
-    }
-
-    private function isUsernameOrEmailTaken($errors) {
-        $usernameErrors = isset($errors['username']) ? $errors['username'] : [];
-        $emailErrors = isset($errors['email']) ? $errors['email'] : [];
-    
-        foreach ($usernameErrors as $error) {
-            if (strpos($error, 'sudah digunakan') !== false) {
-                return true;
-            }
-        }
-    
-        foreach ($emailErrors as $error) {
-            if (strpos($error, 'sudah digunakan') !== false) {
-                return true;
-            }
-        }
-    
-        return false;
     }
 
     /**
@@ -423,5 +404,29 @@ class UserController extends BaseController
         Yii::$app->getResponse()->setStatusCode(400); // Bad Request
         return $model;
     }
-}
 
+    /**
+     * Check if the username or email is already taken.
+     *
+     * @param array $errors
+     * @return bool
+     */
+    private function isUsernameOrEmailTaken($errors) {
+        $usernameErrors = isset($errors['username']) ? $errors['username'] : [];
+        $emailErrors = isset($errors['email']) ? $errors['email'] : [];
+    
+        foreach ($usernameErrors as $error) {
+            if (strpos($error, 'sudah digunakan') !== false) {
+                return true;
+            }
+        }
+    
+        foreach ($emailErrors as $error) {
+            if (strpos($error, 'sudah digunakan') !== false) {
+                return true;
+            }
+        }
+    
+        return false;
+    }
+}

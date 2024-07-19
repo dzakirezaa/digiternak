@@ -10,7 +10,7 @@ $verifyLink = Yii::$app->urlManager->createAbsoluteUrl(['user/verify-email', 'to
 <html>
 <body>
     <div style="text-align: left; font-size: 18px; font-weight: normal;">
-        <img src="<?= Yii::$app->urlManager->createAbsoluteUrl(['web/images/digdaya.png']) ?>" alt="Logo" style="width: 200px; height: auto;">
+        <img src="https://storage.googleapis.com/digiternak1/digdaya%20-%20100x100.png" alt="Logo" style="width: 200px; height: auto;">
         <p>Hi <?= Html::encode($user->username) ?>,</p>
         <p>We're happy you signed up for Digiternak. To start exploring please confirm your email address.</p>
         <div style="text-align: center;">
@@ -18,7 +18,6 @@ $verifyLink = Yii::$app->urlManager->createAbsoluteUrl(['user/verify-email', 'to
         </div>
         <p>Welcome to Digiternak!</p>
         <p>Digiternak Team</p>
-        <p style="font-size: 12px;">This verification link will expire in 24 hours.</p>
     </div>
 </body>
 </html>

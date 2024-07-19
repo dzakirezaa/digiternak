@@ -39,7 +39,7 @@ class Livestock extends ActiveRecord
             [['user_id', 'cage_id', 'age'], 'integer'],
             ['name', 'validateLivestockName'],
             [['chest_size', 'body_weight'], 'number'],
-            [['name', 'type_of_livestock', 'breed_of_livestock', 'purpose', 'maintenance', 'source', 'ownership_status', 'reproduction', 'gender', 'health'], 'string', 'max' => 255],
+            ['name', 'string', 'max' => 255],
             [['livestock_image'], 'string'],
             [['eid', 'vid'], 'unique', 'message' => '{attribute} sudah digunakan oleh ternak lain.'],
             [['name'], 'match', 'pattern' => '/^[A-Za-z0-9\s]{3,255}$/', 'message' => 'Nama harus terdiri dari 3 sampai 255 karakter dan hanya boleh berisi huruf, angka, dan spasi.'],
@@ -51,6 +51,17 @@ class Livestock extends ActiveRecord
             [['birthdate'], 'date', 'format' => 'php:Y-m-d', 'message' => 'Format tanggal tidak valid. Tolong gunakan format YYYY-MM-DD.'],
             [['birthdate'], 'validateBirthdate'],
             [['livestock_image'], 'file', 'extensions' => ['png', 'jpg', 'jpeg'], 'maxSize' => 1024 * 1024 * 5, 'maxFiles' => 5, 'message' => 'Format file tidak valid atau ukuran file terlalu besar (maksimal 5 MB).'],
+
+            // Enum validation rules
+            ['gender', 'in', 'range' => ['Jantan', 'Betina']],
+            ['type_of_livestock', 'in', 'range' => ['Kambing', 'Sapi']],
+            ['breed_of_livestock', 'in', 'range' => ['Madura', 'Bali', 'Limousin', 'Brahman']],
+            ['purpose', 'in', 'range' => ['Indukan', 'Penggemukan', 'Tabungan', 'Belum Tahu']],
+            ['maintenance', 'in', 'range' => ['Kandang', 'Gembala', 'Campuran']],
+            ['source', 'in', 'range' => ['Sejak Lahir', 'Bantuan Pemerintah', 'Beli', 'Beli dari Luar Kelompok', 'Beli dari Dalam Kelompok', 'Inseminasi Buatan', 'Kawin Alam', 'Tidak Tahu']],
+            ['ownership_status', 'in', 'range' => ['Sendiri', 'Kelompok', 'Titipan']],
+            ['reproduction', 'in', 'range' => ['Tidak Bunting', 'Bunting < 1 bulan', 'Bunting 1 bulan', 'Bunting 2 bulan', 'Bunting 3 bulan', 'Bunting 4 bulan', 'Bunting 5 bulan', 'Bunting 6 bulan', 'Bunting 7 bulan', 'Bunting 8 bulan', 'Bunting 9 bulan', 'Bunting 10 bulan', 'Bunting 11 bulan', 'Bunting > 11 bulan']],
+            ['health', 'in', 'range' => ['Sehat', 'Sakit']],
         ];
     }
 
