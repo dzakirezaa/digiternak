@@ -34,3 +34,12 @@ tests/_support/_generated
 
 #vagrant folder
 /.vagrant
+
+#others
+mailjet.crt
+digiternakcredentials.json
+.env
+app.yaml
+web/images/digdaya - 100x100.png
+web/images/digdaya 120x120.png
+config/sa.json
