@@ -6,6 +6,8 @@
  * @var string $content main view render result
  */
 
+$user = $this->params['user']; // Retrieve the $user variable
+
 $this->beginPage();
 $this->beginBody();
 echo $content;

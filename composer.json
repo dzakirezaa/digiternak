@@ -18,8 +18,12 @@
         "yiisoft/yii2": "~2.0.45",
         "yiisoft/yii2-bootstrap5": "~2.0.2",
         "yiisoft/yii2-symfonymailer": "~2.0.3",
-        "sizeg/yii2-jwt": "^1.2",
-        "vlucas/phpdotenv": "^5.6"
+        "vlucas/phpdotenv": "^5.6",
+        "google/cloud-storage": "^1.41",
+        "symfony/mailer": "^6.0",
+        "google/apiclient": "^2.16",
+        "symfony/mailgun-mailer": "^6.0",
+        "kaabar-jwt/yii2-jwt": "dev-master"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
@@ -36,7 +40,7 @@
     },
     "config": {
         "allow-plugins": {
-            "yiisoft/yii2-composer" : true
+            "yiisoft/yii2-composer": true
         },
         "process-timeout": 1800,
         "fxp-asset": {
@@ -54,13 +58,11 @@
     },
     "extra": {
         "yii\\composer\\Installer::postCreateProject": {
-            "setPermission": [
-                {
-                    "runtime": "0777",
-                    "web/assets": "0777",
-                    "yii": "0755"
-                }
-            ]
+            "setPermission": [{
+                "runtime": "0777",
+                "web/assets": "0777",
+                "yii": "0755"
+            }]
         },
         "yii\\composer\\Installer::postInstall": {
             "generateCookieValidationKey": [
@@ -68,10 +70,8 @@
             ]
         }
     },
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://asset-packagist.org"
-        }
-    ]
+    "repositories": [{
+        "type": "composer",
+        "url": "https://asset-packagist.org"
+    }]
 }

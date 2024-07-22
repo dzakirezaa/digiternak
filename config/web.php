@@ -1,5 +1,11 @@
 <?php
 
+require __DIR__ . '/../vendor/autoload.php';
+use yii\rest\UrlRule;
+
+$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+$dotenv->load();
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
@@ -7,6 +13,7 @@ $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
+    'defaultRoute' => 'site/index',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -14,8 +21,8 @@ $config = [
     'components' => [
         'request' => [
             'cookieValidationKey' => 'AsmXcRvr0JV5YEbMzsMuZ6yhpA0w7MqP',
+            'enableCsrfValidation' => YII_ENV_PROD,
             'parsers' => [
-                'enableCsrfValidation' => YII_ENV_PROD,
                 'application/json' => 'yii\web\JsonParser',
             ]
         ],
@@ -36,7 +43,10 @@ $config = [
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@app/mail',
-            'useFileTransport' => true,
+            'transport' => [
+                'class' => 'Symfony\Component\Mailer\Transport',
+                'dsn' => 'smtp://digiternak@gmail.com:ltfs%20ducm%20mbaa%20siwj@smtp.gmail.com:587',
+            ],
         ],
         'log' => [
             'traceLevel' => YII_DEBUG ? 3 : 0,
@@ -53,53 +63,88 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                'person/view/<id:\d+>' => 'person/view',
-                'person/update/<id:\d+>' => 'person/update',
-                'person/delete/<id:\d+>' => 'person/delete',
-                'livestock/view/<id:\d+>' => 'livestock/view',
-                'livestock/update/<id:\d+>' => 'livestock/update',
-                'livestock/delete/<id:\d+>' => 'livestock/delete',
-                'livestock/search/<vid:[^\/]+>' => 'livestock/search',
-                'note/view/<id:\d+>' => 'note/view',
-                'note/update/<id:\d+>' => 'note/update',
-                'note/delete/<id:\d+>' => 'note/delete',
+                [
+                    'class' => UrlRule::class,
+                    'controller' => 'cage',
+                    'pluralize' => false,
+                    'extraPatterns' => [
+                        // 'GET,HEAD' => 'index',
+                        'POST' => 'create',
+                        'GET <id:\d+>' => 'view',
+                        'PUT <id:\d+>' => 'update',
+                        'DELETE <id:\d+>' => 'delete',
+                        'GET' => 'get-cages',
+                    ],
+                ],
+                [
+                    'class' => UrlRule::class,
+                    'controller' => 'user',
+                    'pluralize' => false,
+                    'extraPatterns' => [
+                        'POST register' => 'register',
+                        'POST login' => 'login',
+                        'POST logout' => 'logout',
+                        'POST password-reset' => 'request-password-reset',
+                        'GET verify-email/<token>' => 'verify-email',
+                        'GET' => 'profile',
+                        'PUT' => 'edit-profile',
+                    ],
+                ],
+                [
+                    'class' => UrlRule::class,
+                    'controller' => 'livestock',
+                    'pluralize' => false,
+                    'extraPatterns' => [
+                        'POST' => 'create',
+                        'GET <id:\d+>' => 'view',
+                        'PUT <id:\d+>' => 'update',
+                        'DELETE <id:\d+>' => 'delete',
+                        'GET vid/<vid:[^\/]+>' => 'search',
+                        'GET uid/<user_id:\d+>' => 'get-livestocks',
+                        'POST upload/<id:\d+>/image' => 'upload-image',
+                    ],
+                ],
+                [
+                    'class' => UrlRule::class,
+                    'controller' => 'note',
+                    'pluralize' => false,
+                    'extraPatterns' => [
+                        'POST <livestock_id:\d+>' => 'create',
+                        'GET <id:\d+>' => 'view',
+                        'PUT <id:\d+>' => 'update',
+                        'DELETE <id:\d+>' => 'delete',
+                        'GET livestock/<livestock_id:\d+>' => 'get-note-by-livestock-id',
+                        'GET' => 'index',
+                        'POST upload/<id:\d+>/image' => 'upload-documentation',
+                    ],
+                ],
+                [
+                    'class' => UrlRule::class,
+                    'controller' => 'bcs',
+                    'pluralize' => false,
+                    'extraPatterns' => [
+                        'POST <livestock_id:\d+>' => 'create',
+                        'GET <id:\d+>' => 'view',
+                        'PUT <id:\d+>' => 'update',
+                        'DELETE <id:\d+>' => 'delete',
+                        'GET ls/<livestock_id:\d+>' => 'get-bcs-by-livestock-id',
+                        'POST upload/<id:\d+>/image' => 'upload-bcs',
+                    ],
+                ],
+                'dashboard/<userId:\d+>' => 'dashboard/user-overview',
             ],
-        ],
-        // 'modules' => [
-        //     'api' => [
-        //         'class' => '\app\modules\api\Module',
-        //         'as authenticator' => [
-        //             'class' => 'yii\filters\auth\HttpBearerAuth',
-        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
-        //         ],
-        //         'as access' => [
-        //             'class' => 'yii\filters\AccessControl',
-        //             'only' => ['profile'],  // Daftar action yang memerlukan otentikasi
-        //             'rules' => [
-        //                 [
-        //                     'actions' => ['profile'],
-        //                     'allow' => true,
-        //                     'roles' => ['@'],  // Hanya user yang sudah login yang dapat mengakses action ini
-        //                 ],
-        //             ],
-        //         ],
-        //     ],
-        // ],
-        'formatter' => [
-            'dateFormat' => 'Y-m-d',
-            'datetimeFormat' => 'Y-m-d H:i:s',
-            'timeFormat' => 'H:i:s',
-            'locale' => 'id_ID', 
-        ],
+        ],     
     ],
     'params' => $params,
 ];
 
 if (YII_ENV_DEV) {
     $config['bootstrap'][] = 'debug';
-    $config['modules']['debug'] = [
-        'class' => 'yii\debug\Module',
-    ];
+    if (class_exists('yii\debug\Module')) {
+        $config['modules']['debug'] = [
+            'class' => 'yii\debug\Module',
+        ];
+    }
 
     $config['bootstrap'][] = 'gii';
     $config['modules']['gii'] = [
