@@ -5,6 +5,11 @@
     "homepage": "https://www.yiiframework.com/",
     "type": "project",
     "license": "BSD-3-Clause",
+    "autoload": {
+        "psr-4": {
+            "yii2\\theme\\mazer\\": "./"
+        }
+    },
     "support": {
         "issues": "https://github.com/yiisoft/yii2/issues?state=open",
         "forum": "https://www.yiiframework.com/forum/",

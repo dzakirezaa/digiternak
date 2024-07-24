@@ -59,4 +59,30 @@ class SiteController extends Controller
             return $this->render('error', ['exception' => $exception]);
         }
     }
+
+    /**
+     * Displays pages.
+     *
+     * @return string
+     */
+    public function actionAbout()
+    {
+        return $this->render('about');
+    }
+    
+    public function actionNotes(){
+        return $this->render('notes');
+    }
+    
+    public function actionCreateSapi(){
+        return $this->render('create-sapi');
+    }
+    
+    public function actionCreateKandang(){
+        return $this->render('create-kandang');
+    }
+    
+    public function actionSignup(){
+        return $this->render('signup');
+    }
 }

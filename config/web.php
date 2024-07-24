@@ -24,10 +24,25 @@ $config = [
             'enableCsrfValidation' => YII_ENV_PROD,
             'parsers' => [
                 'application/json' => 'yii\web\JsonParser',
-            ]
+            ],
+        ],
+        'assetManager' => [
+            'forceCopy' => !YII_ENV_PROD,
+            'linkAssets' => true,
+            'appendTimestamp' => true,
+        ],
+        'view' => [
+            'theme' => [
+                'pathMap' => [
+                    '@app/views' => [
+                        '@app/views',
+                        '@vendor/anovsiradj/yii2-theme-mazer/views',
+                    ],
+                ],
+            ],
         ],
         'response' => [
-            'format' => yii\web\Response::FORMAT_JSON,
+            'format' => yii\web\Response::FORMAT_HTML,
             'charset' => 'UTF-8',
         ],
         'cache' => [
@@ -63,75 +78,7 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                [
-                    'class' => UrlRule::class,
-                    'controller' => 'cage',
-                    'pluralize' => false,
-                    'extraPatterns' => [
-                        // 'GET,HEAD' => 'index',
-                        'POST' => 'create',
-                        'GET <id:\d+>' => 'view',
-                        'PUT <id:\d+>' => 'update',
-                        'DELETE <id:\d+>' => 'delete',
-                        'GET' => 'get-cages',
-                    ],
-                ],
-                [
-                    'class' => UrlRule::class,
-                    'controller' => 'user',
-                    'pluralize' => false,
-                    'extraPatterns' => [
-                        'POST register' => 'register',
-                        'POST login' => 'login',
-                        'POST logout' => 'logout',
-                        'POST password-reset' => 'request-password-reset',
-                        'GET verify-email/<token>' => 'verify-email',
-                        'GET' => 'profile',
-                        'PUT' => 'edit-profile',
-                    ],
-                ],
-                [
-                    'class' => UrlRule::class,
-                    'controller' => 'livestock',
-                    'pluralize' => false,
-                    'extraPatterns' => [
-                        'POST' => 'create',
-                        'GET <id:\d+>' => 'view',
-                        'PUT <id:\d+>' => 'update',
-                        'DELETE <id:\d+>' => 'delete',
-                        'GET vid/<vid:[^\/]+>' => 'search',
-                        'GET uid/<user_id:\d+>' => 'get-livestocks',
-                        'POST upload/<id:\d+>/image' => 'upload-image',
-                    ],
-                ],
-                [
-                    'class' => UrlRule::class,
-                    'controller' => 'note',
-                    'pluralize' => false,
-                    'extraPatterns' => [
-                        'POST <livestock_id:\d+>' => 'create',
-                        'GET <id:\d+>' => 'view',
-                        'PUT <id:\d+>' => 'update',
-                        'DELETE <id:\d+>' => 'delete',
-                        'GET livestock/<livestock_id:\d+>' => 'get-note-by-livestock-id',
-                        'GET' => 'index',
-                        'POST upload/<id:\d+>/image' => 'upload-documentation',
-                    ],
-                ],
-                [
-                    'class' => UrlRule::class,
-                    'controller' => 'bcs',
-                    'pluralize' => false,
-                    'extraPatterns' => [
-                        'POST <livestock_id:\d+>' => 'create',
-                        'GET <id:\d+>' => 'view',
-                        'PUT <id:\d+>' => 'update',
-                        'DELETE <id:\d+>' => 'delete',
-                        'GET ls/<livestock_id:\d+>' => 'get-bcs-by-livestock-id',
-                        'POST upload/<id:\d+>/image' => 'upload-bcs',
-                    ],
-                ],
-                'dashboard/<userId:\d+>' => 'dashboard/user-overview',
+                // ... other URL rules
             ],
         ],     
     ],
