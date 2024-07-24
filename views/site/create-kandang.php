@@ -1,3 +1,11 @@
+<?php
+
+use yii\helpers\Html;
+
+$this->title = 'Buat Kandang';
+$this->params['breadcrumbs'][] = $this-> title;
+?>
+
 <div class="page-content"> 
     <section class="row">
         <div class="col-12 col-lg-7">
@@ -5,7 +13,7 @@
                 <div class="card">
                     <div class="card-content">
                         <div class="card-body">
-                            <h4 class="card-title mb-4">Buat Kandang Baru</h4>
+                            <h4 class="card-title mb-4"><?= Html::encode($this->title) ?></h4>
                             <form class="form" method="post">
                                 <div class="form-body">
                                     <div class="form-group">

@@ -2,18 +2,23 @@
 
 require __DIR__ . '/../vendor/autoload.php';
 use yii\rest\UrlRule;
+use Dotenv\Dotenv;
 
-$dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
-$dotenv->load();
+// $dotenv = Dotenv\Dotenv::createImmutable(dirname(__DIR__));
+// $dotenv->load();
 
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
 
 $config = [
     'id' => 'basic',
+    // 'layout' => 'mainy',
     'basePath' => dirname(__DIR__),
     'bootstrap' => ['log'],
-    'defaultRoute' => 'site/index',
+    'controllerMap' => [
+        'mazer' => \yii2\theme\mazer\TestController::class,
+    ],
+    'defaultRoute' => 'site/create-kandang',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -78,7 +83,12 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
-                // ... other URL rules
+                '' => 'site/index',
+                'create-sapi' => 'site/create-sapi',
+                'create-kandang' => 'site/create-kandang',
+                'notes' => 'site/notes',
+                'login' => 'site/login copy',
+                'signup' => 'site/signup',
             ],
         ],     
     ],

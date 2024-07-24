@@ -76,7 +76,10 @@
         }
     },
     "repositories": [{
-        "type": "composer",
-        "url": "https://asset-packagist.org"
+        "type": "path",
+        "url": "../yii2-theme-mazer",
+        "options": {
+            "symlink": true
+        }
     }]
 }
