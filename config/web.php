@@ -18,7 +18,7 @@ $config = [
     'controllerMap' => [
         'mazer' => \yii2\theme\mazer\TestController::class,
     ],
-    'defaultRoute' => 'site/create-kandang',
+    'defaultRoute' => 'site/index',
     'aliases' => [
         '@bower' => '@vendor/bower-asset',
         '@npm'   => '@vendor/npm-asset',
@@ -32,6 +32,13 @@ $config = [
             ],
         ],
         'assetManager' => [
+            'bundles' => [
+                \yii2\theme\mazer\MainAsset::class => [
+                    'css' => [
+                        'app.min.css',
+                    ],
+                ],
+            ],
             'forceCopy' => !YII_ENV_PROD,
             'linkAssets' => true,
             'appendTimestamp' => true,

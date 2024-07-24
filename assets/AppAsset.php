@@ -21,8 +21,16 @@ class AppAsset extends AssetBundle
     public $baseUrl = '@web';
     public $css = [
         'css/site.css',
+        'assets/scss/iconly.scss',
+        'assets/extensions/quill/quill.snow.css',
+        'assets/extensions/quill/quill.bubble.css',
+        'assets/extensions/apexcharts/apexcharts.min.css',
     ];
     public $js = [
+        'assets/extensions/quill/quill.min.js',
+        'assets/extensions/apexcharts/apexcharts.min.js',
+        'assets/static/js/pages/dashboard.js',
+        'assets/static/js/pages/quill.js',
     ];
     public $depends = [
         'yii\web\YiiAsset',
