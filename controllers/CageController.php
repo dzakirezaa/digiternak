@@ -201,7 +201,7 @@ class CageController extends BaseController
     public function actionDelete($id)
     {
         if (!ctype_digit($id)) {
-            Yii::$app->response->statusCode = 400;
+            Yii::$app->response->statusCode = 404;
             return [
                 'message' => 'Invalid ID',
                 'error' => true,
@@ -220,7 +220,7 @@ class CageController extends BaseController
             }
     
             if ($cage->delete()) {
-                Yii::$app->response->statusCode = 200;
+                Yii::$app->response->statusCode = 204;
                 return [
                     'message' => 'Kandang berhasil dihapus',
                     'error' => false,
@@ -228,7 +228,7 @@ class CageController extends BaseController
             }
         }
     
-        Yii::$app->response->statusCode = 400;
+        Yii::$app->response->statusCode = 404;
         return [
             'message' => 'Gagal menghapus kandang, kandang tidak ditemukan.',
             'error' => true,

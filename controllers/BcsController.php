@@ -144,7 +144,7 @@ class BcsController extends BaseController
         if ($model) {
             $model->delete();
             $response = Yii::$app->response;
-            $response->setStatusCode(200);
+            $response->setStatusCode(204);
             $response->data = [
                 'message' => 'Data BCS berhasil dihapus.',
                 'error' => false,

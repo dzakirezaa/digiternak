@@ -197,7 +197,7 @@ class LivestockController extends BaseController
 
             // Check if the livestock exists
             if ($livestock === null) {
-                Yii::$app->response->statusCode = 400;
+                Yii::$app->response->statusCode = 404;
                 return [
                     'message' => 'Gagal menghapus data ternak. Data ternak tidak ditemukan.',
                     'error' => true,
@@ -223,7 +223,7 @@ class LivestockController extends BaseController
 
             $transaction->commit();
 
-            Yii::$app->response->statusCode = 200;
+            Yii::$app->response->statusCode = 204;
             return [
                 'message' => 'Data ternak berhasil dihapus.',
                 'error' => false,

@@ -218,7 +218,7 @@ class NoteController extends BaseController
             $model = $this->findModel($id);
 
             if ($model === null) {
-                Yii::$app->response->statusCode = 400;
+                Yii::$app->response->statusCode = 404;
                 return [
                     'message' => 'Gagal menghapus catatan, catatan tidak ditemukan.',
                     'error' => true,
@@ -233,7 +233,7 @@ class NoteController extends BaseController
 
             $transaction->commit();
 
-            Yii::$app->response->statusCode = 200;
+            Yii::$app->response->statusCode = 204;
             return [
                 'message' => 'Catatan berhasil dihapus.',
                 'error' => false,
